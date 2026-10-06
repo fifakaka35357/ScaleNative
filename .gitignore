@@ -1,0 +1,17 @@
+# External dependencies fetched by scripts/aichip_setup.sh
+/_ext/
+/third_party/
+
+# Simulation build products
+sim_build*/
+obj_dir/
+__pycache__/
+*.pyc
+results.xml
+*.vcd
+*.fst
+*.r1diff
+
+# Run logs
+/_logs/
+*.log

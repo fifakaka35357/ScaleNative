@@ -1,0 +1,19 @@
+%% tables/tab-prior.tex -- body of the table `tab:prior'.
+%% The float, the caption and the label are in sections/07-related-work.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3pt}\setlength{\defaultaddspace}{2pt}%
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.62in}>{\raggedright\arraybackslash}p{1.62in}@{}}
+\toprule
+Answers & Leaves open \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textit{Block formats beyond GEMM}: DB-Attn, MXInt ViT, MASE, BBAL} \\
+block formats can cross the matrix/non-matrix boundary & when the block form pays off between separate, reused units \\
+\addlinespace
+\multicolumn{2}{@{}l@{}}{\textit{Production hand-offs}: Blackwell with cuBLAS, MTIA 2i, Tenstorrent} \\
+today's practice: \armSE, \armSD, and \armSM plus packing & when the placement changes cost and numerics \\
+\addlinespace
+\multicolumn{2}{@{}l@{}}{\textit{Tags, write combining}: CHERI, tagged tokens, Triggered Instructions} \\
+atomic tag--data binding; tag check at the consumer; merged writes & multi-row numerical objects re-read under a lease; their cost \\
+\bottomrule
+\end{tabular}

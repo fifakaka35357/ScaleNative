@@ -1,0 +1,68 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-flow-body.tex -- evaluation flow (method figure), the figure body.  Single column: 3.33 in x 1.5 in.
+%% Every colour, line kind, shape and lettering size comes from scalenative-figstyle.sty; this file sets positions
+%% and box sizes.  Coordinates are in bp; the canvas is 239.76 bp x 108 bp.  Needs: \usepackage{scalenative-figstyle}.
+%%   left column   five inputs (neutral boxes)
+%%   right column  five forms of evidence (neutral boxes; the fifth is an open slot)
+%%   between       the modelling step, an open slot
+%% The figure has no main line and no red.
+\begin{AFcanvas}{S}{150}
+  % Local shorthand: a composition of keys of scalenative-figstyle.sty, with no colour, dash pattern or width of its own.
+  %   flow open   a connection that is not decided yet
+  \tikzset{flow open/.style={af data, dash pattern=on 1.2bp off 1.2bp, draw=AFSlotS}}
+  % ---- geometry (bp) -------------------------------------------------------------------------
+  \def\flXl{1bp}        % west edge of the input column
+  \def\flXr{238.76bp}   % east edge of the evidence column
+  \def\flWl{84bp}       % box width, input column    (widest name: Golden model + tests)
+  \def\flWr{62bp}       % box width, evidence column (widest name: RTL simulation)
+  \def\flXa{92bp}       % trunk on which the three inputs of RTL simulation meet
+  \def\flXb{100bp}      % where Flow + PDK setup joins the implementation path
+  \def\flXf{166.16bp}   % fork to Synthesis slice / Post-route EDA estimate
+  \def\flXm{130.88bp}   % centre of the modelling step (midway between the two columns)
+  \def\flXc{43.3bp}     % where the undecided connection leaves Workload inventory (centre of its bottom edge)
+  \def\flPort{3.72bp}   % offset of the two outlets of RTL + configuration from its centre line
+  % rows (centre lines); the five inputs are 17.2 bp apart
+  \def\flYa{101.2bp}    % Golden model + tests | RTL simulation
+  \def\flYb{84bp}       % Synthetic tensors    | Synthesis slice
+  \def\flYc{66.8bp}     % RTL + configuration
+  \def\flYcr{63.08bp}   % Post-route EDA estimate  (= \flYc - \flPort; its top edge is level with RTL + configuration)
+  \def\flYd{49.6bp}     % Flow + PDK setup
+  \def\flYe{32.4bp}     % Workload inventory   | Analytical derivation
+  \def\flYm{11.48bp}    % Model | Model results
+
+  % ---- inputs ----------------------------------------------------------
+  \node[af blk=Neut, minimum width=\flWl, anchor=west] (gold) at (\flXl,\flYa) {Golden model + tests};
+  \node[af blk=Neut, minimum width=\flWl, anchor=west] (syn)  at (\flXl,\flYb) {Synthetic tensors};
+  \node[af blk=Neut, minimum width=\flWl, anchor=west] (rtl)  at (\flXl,\flYc) {RTL + configuration};
+  \node[af blk=Neut, minimum width=\flWl, anchor=west] (pdk)  at (\flXl,\flYd) {Flow + PDK setup};
+  \node[af blk=Neut, minimum width=\flWl, anchor=west] (wl)   at (\flXl,\flYe) {Workload inventory};
+
+  % ---- forms of evidence ---------------------------------------------------------------
+  \node[af blk=Neut, minimum width=\flWr, anchor=east] (sim)  at (\flXr,\flYa)  {RTL simulation};
+  \node[af blk=Neut, minimum width=\flWr, anchor=east] (ss)   at (\flXr,\flYb)  {Synthesis slice};
+  \node[af blk=Neut, minimum width=\flWr, anchor=east] (pr)   at (\flXr,\flYcr) {Post-route\\EDA estimate};
+  \node[af blk=Neut, minimum width=\flWr, anchor=east] (ana)  at (\flXr,\flYe)  {Analytical\\derivation};
+  \node[af slot,     minimum width=\flWr, anchor=east] (mres) at (\flXr,\flYm)  {Model results};
+
+  % ---- the modelling step: open slot -------------------------------------------------------
+  % The slot is 54 bp wide instead of its natural 50.1 bp: the second line is italic and overhangs to the
+  % right, so at the natural width its ink would stand 2.10 bp from the left edge and 1.35 bp from the
+  % right edge of the slot (the style gives 2 bp); at 54 bp it stands 4.05 bp and 3.30 bp from them.
+  \node[af slot, minimum width=54bp] (model) at (\flXm,\flYm) {Model\\to be defined};
+
+  % ---- Golden model + tests, Synthetic tensors, RTL + configuration -> RTL simulation ----
+  \draw[af data] (gold.east) -- (sim.west);
+  \draw[af wire] ([yshift=\flPort]rtl.east) -| (\flXa,\flYa);
+  \draw[af wire] (syn.east) -- (\flXa,\flYb);
+  % ---- RTL + configuration, Flow + PDK setup -> Synthesis slice, Post-route EDA estimate ----
+  \draw[af data] ([yshift=-\flPort]rtl.east) -- (pr.west);
+  \draw[af wire] (pdk.east) -| (\flXb,\flYcr);
+  \draw[af data] (\flXf,\flYcr) |- (ss.west);
+  % ---- Workload inventory -> Analytical derivation (does not pass through the model) ----
+  \draw[af data] (wl.east) -- (ana.west);
+  % ---- into and out of the modelling step: connections not decided ----
+  \draw[flow open] (\flXc,0bp |- wl.south) |- (model.west);
+  \draw[flow open] (model.east) -- (mres.west);
+\end{AFcanvas}

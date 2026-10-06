@@ -1,0 +1,18 @@
+%% ============================================================================
+%% sections/10-conclusion.tex -- Conclusion
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 100 words of running text.
+%% ============================================================================
+
+\section{Conclusion}\label{sec:conclusion}
+
+%% P:sec10-p1
+\ptag{sec10-p1}%
+This paper asks when a GEMM result should stay \blockscaled across the matrix-to-vector \handoff of a PE, rather than cross as a scalar or be consumed in a fused epilogue, and what a \failvisible \handoff costs.
+The placement sweep and the cost breakdown will give the answer in three quantities: whether fusion is feasible, how long the result must live, and the granularity of metadata transactions \TBD{E4}{written after the results}.
+That answer is bounded by its evidence: numerical error on synthetic inputs, placements compared within one RTL, and physical costs as \evPostRoute{}s, not silicon measurements.

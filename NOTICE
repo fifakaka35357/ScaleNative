@@ -1,0 +1,131 @@
+ScaleNative
+Copyright 2026 The ScaleNative Authors
+
+The ScaleNative Authors are the people listed in the AUTHORS file.
+
+Except where this file says otherwise, the contents of this repository are
+licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+The paper/ directory is not covered by the Apache License. All rights in the
+manuscript and its figures are reserved. See paper/README.md.
+
+This file records the third-party work that this repository contains or
+builds on. It is provided for attribution and does not change any license.
+
+
+========================================================================
+Part 1. Third-party material contained in this repository
+========================================================================
+
+1.1  Ibex RISC-V core (source files, unmodified)
+
+     Location:   designs/src/aichip_sv/ibex/
+                 23 files: 21 SystemVerilog sources, 1 Verilog source and
+                 1 SystemVerilog header.
+     Origin:     https://github.com/lowRISC/ibex
+                 The files are taken, without change, from the copy that
+                 ships with OpenROAD-flow-scripts under
+                 flow/designs/src/ibex_sv/. OpenROAD-flow-scripts records
+                 that copy as cloned from lowRISC/ibex at commit
+                 77d801001554cce8fe69e742e96539eecbe74425 and pruned to
+                 the source files in use.
+     License:    Apache License, Version 2.0 (LICENSES/Apache-2.0.txt)
+     Copyright notices, as they appear in the file headers:
+                 Copyright lowRISC contributors.
+                 Copyright 2018 ETH Zurich and University of Bologna,
+                 see also CREDITS.md.
+                 Copyright 2017 ETH Zurich and University of Bologna,
+                 see also CREDITS.md.
+
+     Sixteen of the files carry an ETH Zurich and University of Bologna
+     notice next to the lowRISC one (2017 in ibex_pkg.sv, 2018 in the other
+     fifteen). Six carry the lowRISC notice only. One, ibex_counter.sv, has
+     no header in the upstream copy and is covered by the same upstream
+     license. The CREDITS.md file that the headers mention is part of the
+     Ibex repository and is not reproduced here.
+
+     The neighbouring directory designs/src/aichip_sv/IBEX_SRAM/ is
+     ScaleNative code. It is not part of Ibex, despite the name.
+
+     Two ScaleNative files, rtl/IBEX_SRAM/pe_ibex_wrapper.sv and
+     rtl/IBEX_SRAM/pe_top.sv (and their copies under
+     designs/src/aichip_sv/IBEX_SRAM/), repeat parameter and port
+     declarations of ibex_core.sv, as is needed to instantiate the core.
+     Those declarations originate from Ibex and are covered by the same
+     Apache License, Version 2.0.
+
+1.2  Files derived from OpenROAD-flow-scripts
+
+     Origin:     https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+     License:    BSD 3-Clause License (LICENSES/BSD-3-Clause.txt, first text)
+     Copyright:  Copyright (c) 2018-2023, The Regents of the University of California
+                 All rights reserved.
+     Changes:    Copyright (c) 2026, The ScaleNative Authors, under the same
+                 BSD 3-Clause terms.
+
+     (a) patches/orfs-local.patch
+         A patch against flow scripts under flow/scripts/. It reproduces
+         unchanged upstream lines as context around the added lines.
+
+     (b) designs/asap7/aichip_vector/constraint.sdc
+         designs/asap7/m1_vector_1670.sdc
+         Timing constraints adapted from the example constraint file that
+         ships with the upstream Ibex design (flow/designs/asap7/ibex/
+         constraint.sdc). They differ from it in the clock period, in
+         leaving out the two clock-latency lines, and in the comments.
+
+     (c) designs/asap7/aichip_pe_top/constraint.sdc
+         designs/asap7/aichip_tensor_signoff/constraint.sdc
+         designs/asap7/m1_tensor_1670.sdc
+         Timing constraints that open with the clock-definition lines used
+         by the upstream example constraint files. The rest of each file
+         was written for this project.
+
+     (d) designs/asap7/aichip_pe_top/config.mk
+         designs/asap7/aichip_vector/config.mk
+         designs/asap7/aichip_tensor_signoff/config.mk
+         Design configuration files laid out after the example config.mk
+         files that ship with OpenROAD-flow-scripts. Individual variable
+         settings coincide with those examples. The remaining content was
+         written for this project.
+
+1.3  File derived from asap7_sram_0p0
+
+     Origin:     https://github.com/The-OpenROAD-Project/asap7_sram_0p0
+     License:    BSD 3-Clause License (LICENSES/BSD-3-Clause.txt, second
+                 text)
+     Copyright:  Copyright (c) 2023, The OpenROAD Project
+     Changes:    Copyright (c) 2026, The ScaleNative Authors, under the same
+                 BSD 3-Clause terms.
+
+     patches/sram-bitwidth.patch
+         A one-line correction to generated/LIB/srambank_128x4x64_6t122.lib.
+         The patch reproduces the neighbouring upstream lines as context.
+
+
+========================================================================
+Part 2. Third-party material used at build time, not contained here
+========================================================================
+
+The projects below are obtained separately when the flow is set up; the
+build guide describes how. Apart from the material listed in Part 1, none of
+their files is redistributed in this repository.
+
+2.1  OpenROAD-flow-scripts, with the tools it builds
+     https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts
+     The build and run scripts are under the BSD 3-Clause License. The
+     tools, platforms and designs that the flow bundles each carry their own
+     license. See the License section of the upstream README.
+
+2.2  ASAP7 predictive process design kit
+     https://github.com/The-OpenROAD-Project/asap7
+     Used through the asap7 platform files that ship with
+     OpenROAD-flow-scripts (flow/platforms/asap7/).
+     BSD 3-Clause License. Copyright 2020 Lawrence T. Clark, Vinay
+     Vashishtha, or Arizona State University.
+
+2.3  asap7_sram_0p0 (SRAM macros for ASAP7)
+     https://github.com/The-OpenROAD-Project/asap7_sram_0p0
+     BSD 3-Clause License. Copyright (c) 2023, The OpenROAD Project.
+     The physical layouts in this project use the srambank_128x4x64_6t122
+     macro from this package, with patches/sram-bitwidth.patch applied.

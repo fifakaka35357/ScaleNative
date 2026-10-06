@@ -1,0 +1,13 @@
+diff --git a/generated/LIB/srambank_128x4x64_6t122.lib b/generated/LIB/srambank_128x4x64_6t122.lib
+index bc43659226915fbda2f6899900eef14ae434a294..166c506f650929f2817cbe599ceaf2172cd77e23 100644
+--- a/generated/LIB/srambank_128x4x64_6t122.lib
++++ b/generated/LIB/srambank_128x4x64_6t122.lib
+@@ -51,7 +51,7 @@ library (srambank_128x4x64_6t122) {
+   type (bus_srambank_8kB_6t122_ltc1_address_9_0) {
+     base_type : array;
+     data_type : bit;
+-    bit_width : 8;
++    bit_width : 9;
+     bit_from  : 8;
+     bit_to    : 0;
+     downto    : true;

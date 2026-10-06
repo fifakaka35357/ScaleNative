@@ -1,0 +1,37 @@
+%% preamble/float-budget.tex -- width class and body height of every figure and table slot.
+%% Source of the numbers: page-budget plan (14 figures + 7 tables); S = single column (3.33 in),
+%% F = full width (7.0 in); heights are body heights in inches, caption excluded.
+%% \FloatBudget{<label>}{<S|F>}{<height in inches>}{<free note, not printed>}
+%% The seven tables are typeset (bodies in tables/); their entries stay as the record of the size each was given.
+%% To use a finished figure instead of the empty box:  \FloatFile{<label>}{figures/<file>}
+
+\FloatBudget{fig:handoff}{S}{1.9}{}% Fig. 1
+\FloatBudget{fig:workload}{S}{2.1}{}% Fig. 2
+\FloatBudget{tab:workload-gen}{S}{1.8}{}% Tab. 1 (typeset: tables/tab-workload-gen.tex; this entry is no longer read)
+\FloatBudget{tab:placements}{F}{2.2}{}% Tab. 2 (typeset: tables/tab-placements.tex; no longer read)
+\FloatBudget{tab:attribution}{S}{1.3}{}% Tab. 3 (typeset: tables/tab-attribution.tex; no longer read)
+\FloatBudget{fig:retain}{S}{2.6}{}% Fig. 3
+\FloatBudget{fig:system}{S}{2.1}{}% Fig. 4
+\FloatBudget{fig:pe}{F}{2.4}{}% Fig. 5
+\FloatBudget{fig:tensor}{F}{1.9}{}% Fig. 6
+\FloatBudget{fig:vector}{F}{2.4}{}% Fig. 7
+\FloatBudget{fig:flow}{S}{1.5}{}% Fig. 8
+\FloatBudget{tab:configs}{S}{1.2}{}% Tab. 4 (typeset: tables/tab-configs.tex; no longer read)
+\FloatBudget{tab:mac-share}{S}{1.3}{}% Tab. 5 (typeset: tables/tab-mac-share.tex; no longer read)
+\FloatBudget{fig:payoff}{F}{2.3}{}% Fig. 9
+\FloatBudget{fig:correct}{S}{2.0}{}% Fig. 10
+\FloatBudget{fig:metadata}{S}{2.0}{}% Fig. 11
+\FloatBudget{fig:failvis-cost}{S}{1.9}{}% Fig. 12
+\FloatBudget{fig:layout}{S}{3.33}{}% Fig. 13 (the die is square and the figure has no margin, so it is as high as it is wide)
+\FloatBudget{tab:layout-runs}{S}{1.6}{}% Tab. 6 (typeset: tables/tab-layout-runs.tex; no longer read)
+\FloatBudget{fig:system-proj}{S}{2.0}{}% Fig. 14
+\FloatBudget{tab:prior}{S}{1.6}{}% Tab. 7 (typeset: tables/tab-prior.tex; no longer read)
+
+%% Finished figures (sources and build script in figures/).  Each PDF is drawn at the width and height
+%% budgeted above and is included at its natural size.
+\FloatFile{fig:system}{figures/fig-system}% Fig. 4,  3.33 in x 2.1 in
+\FloatFile{fig:pe}{figures/fig-pe}% Fig. 5,  7.0 in x 2.4 in
+\FloatFile{fig:tensor}{figures/fig-tensor}% Fig. 6,  7.0 in x 1.9 in
+\FloatFile{fig:vector}{figures/fig-vector}% Fig. 7,  7.0 in x 2.4 in
+\FloatFile{fig:flow}{figures/fig-flow}% Fig. 8,  3.33 in x 1.5 in
+\FloatFile{fig:layout}{figures/fig-layout}% Fig. 13, 3.33 in x 3.33 in

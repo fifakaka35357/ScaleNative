@@ -1,0 +1,27 @@
+%% preamble/authors-ieee.tex -- how authors.tex is rendered by IEEEtran (conference mode):
+%% one line of names with affiliation marks, one line per affiliation, one line of emails
+%% (left out when no author has an email).
+%% \IEEEauthorrefmark has nine symbols; with more than nine affiliations switch to numbers here.
+\makeatletter
+\newcounter{pa@n}
+\def\pa@names{}\def\pa@plain{}\def\pa@affs{}\def\pa@emails{}
+\newcommand{\PaperAffil}[4]{%
+  \stepcounter{pa@n}\csxdef{pa@mark@#1}{\arabic{pa@n}}%
+  \ifdefempty{\pa@affs}{}{\gappto\pa@affs{\\}}%
+  \xappto\pa@affs{\noexpand\IEEEauthorrefmark{\arabic{pa@n}}}%
+  \gappto\pa@affs{#2, #3, #4}}
+\newcommand{\pa@onemark}[1]{%
+  \ifcsdef{pa@mark@#1}{}{\PackageError{paper}{authors.tex: affiliation key `#1' is not defined}{Add a \string\PaperAffil\space line.}}%
+  \IEEEauthorrefmark{\csuse{pa@mark@#1}}}
+\newcommand{\PaperAuthor}[3]{%
+  \ifdefempty{\pa@names}{}{\gappto\pa@names{, }\gappto\pa@plain{, }}%
+  \gappto\pa@names{#1\forcsvlist{\pa@onemark}{#2}}%
+  \gappto\pa@plain{#1}%
+  \ifstrempty{#3}{}{\ifdefempty{\pa@emails}{}{\gappto\pa@emails{, }}\gappto\pa@emails{#3}}}
+\newcommand{\PaperEmitAuthors}{%
+  \ifdefempty{\pa@emails}%
+    {\author{\IEEEauthorblockN{\pa@names}\\ \IEEEauthorblockA{\pa@affs}}}%
+    {\author{\IEEEauthorblockN{\pa@names}\\ \IEEEauthorblockA{\pa@affs}\\ \IEEEauthorblockA{\pa@emails}}}%
+  \hypersetup{pdfauthor={\pa@plain}}}
+\makeatother
+\endinput

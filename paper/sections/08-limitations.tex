@@ -1,0 +1,27 @@
+%% ============================================================================
+%% sections/08-limitations.tex -- Limitations
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 160 words of running text.
+%% ============================================================================
+
+\section{Limitations}\label{sec:limits}
+
+%% P:sec8-p1
+\ptag{sec8-p1}%
+Physical results are \evPostRoute{}s on the ASAP7 predictive PDK at one process corner, with generated SRAM timing models; we claim no silicon, sign-off or frequency.
+Each result names its \Lii storage contract; we never pair performance under the behavioral dual-port model with area and timing under single-port macros.
+The text describes the target design; \secref{sec:uarch} states what the prototype lacks.
+
+%% P:sec8-p2
+\ptag{sec8-p2}%
+System-level results are model projections; calibration on one PE does not transfer to the network, shared storage or off-chip memory.
+Workload numbers are analytical counts of one decode step of one model family, not measurements.
+Numerical experiments use synthetic tensors: they report numerical error under stated distributions and say nothing about model quality.
+The same holds where the target design departs from the reference implementation: it quantizes the attention-core query to 8 bits (reference: BF16), and its online softmax and top-$k$ selection may differ from the reference kernels.
+Fusion is evaluated only with a scalar epilogue, not in the block domain.
+The third consumer tier is a minimal instance, not a complete RMSNorm.

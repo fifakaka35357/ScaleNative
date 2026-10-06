@@ -1,0 +1,21 @@
+%% ============================================================================
+%% sections/00-abstract.tex -- Abstract
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 180 words of running text.
+%% ============================================================================
+%% (no blank lines in this file: it is read inside the abstract environment)
+%% H1: Abstract
+%% P:abs-p1
+\ptag{abs-p1}%
+A GEMM result can be consumed where it is produced, in a fused epilogue, or take a scalar or \blockscaled form and pass to a separate vector unit.
+The choice changes where rounding happens, how long execution resources stay occupied, and how much intermediate state is stored and in what form.
+We study when keeping the result \blockscaled across this matrix-to-vector \handoff pays off, in a processing element (PE) pairing a systolic \TensorUnit with two \VectorCore{}s \TBD{D1}{form, width and division of labor of the two Vector cores}.
+We compare five placements of the \handoff: up to four as compile-time configurations of one RTL, the fused one with a \evSlice and a calibrated \evModel; numerical error is evaluated on synthetic inputs.
+We characterize where this pays off by fusion feasibility, result lifetime and metadata transaction granularity \TBD{E4}{where the block form pays off and where it does not}, and report the cost of a \failvisible \handoff \TBD{E8}{implementation cost} and a system-level projection \TBD{P}{system-level result; source of performance data}.
+Decoding with three public models from two generations of one family (DeepSeek-V4-Pro and V4-Flash, then V4.1-Flash) motivates the design and is the evaluation workload.
+Today's RTL prototype has one \VectorCore and implements one placement; physical results are \evPostRoute{}s on the ASAP7 predictive PDK, not silicon measurements.

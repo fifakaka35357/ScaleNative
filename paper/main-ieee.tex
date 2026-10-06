@@ -1,0 +1,74 @@
+%% ============================================================================
+%% main-ieee.tex -- IEEE shell (IEEEtran, conference, 10 pt), the page format of
+%% ISCA 2026 and HPCA 2027.  Kept buildable alongside main-acm.tex; the text, the
+%% macros, the author list and the bibliography are the same files.
+%% Build with ./build.sh (see README-build.md); do not edit the text here.
+%% ============================================================================
+\input{preamble/switches}
+\PaperRequireVenue{none,isca26,hpca27}        % the venues this shell implements
+
+\documentclass[10pt,conference]{IEEEtran}
+\IEEEoverridecommandlockouts                  % lets the share build attach a note to the title
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{textcomp}
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[hidelinks]{hyperref}
+\pdfpagewidth=8.5in \pdfpageheight=11in       % US Letter, as in the venue templates
+\input{preamble/common}
+\input{preamble/authors-ieee}
+\renewcommand{\figrefname}{Fig.}              % IEEE wording for cross references
+
+\begin{document}
+\hypersetup{pdftitle={\PaperTitlePDF}}
+\title{\PaperTitle\ifPaperNotice\thanks{\PaperNoticeText}\fi}
+\ifPaperBanner   % submit mode only: the author block is the venue's banner
+  \PaperIfVenue{isca26}{\author{\normalsize{ISCA 2026 Submission
+      \textbf{\#\PaperSubmissionID} -- Confidential Draft -- Do NOT Distribute!!}}}{}
+  \PaperIfVenue{hpca27}{\author{\IEEEauthorblockN{\normalsize{HPCA 2027 Submission
+      \textbf{\#\PaperSubmissionID}}} \\ \IEEEauthorblockA{Confidential Draft \\ Do NOT Distribute!!}}}{}
+\else
+  \ifPaperAnon
+    \author{Anonymous Author(s)}              % authors.tex is not read at all
+  \else
+    \input{authors}
+    \PaperEmitAuthors
+  \fi
+\fi
+\maketitle
+\thispagestyle{plain}\pagestyle{plain}        % page numbers, as the venue templates require
+
+\begin{abstract}
+\input{sections/00-abstract}
+\end{abstract}
+\suppressfloats[t]                            % no figure above the abstract in the first column
+
+\input{body}
+
+% ---- acknowledgments and AI-use statement ------------------------------------------
+\ifPaperAcks
+  \section*{Acknowledgment}
+  \input{backmatter/acks}
+  \ifPaperAIUse\par\input{backmatter/ai-use}\fi
+\else
+  \ifPaperAIUse
+    % ISCA 2026 wants the statement in the acknowledgments (inside the page limit);
+    % HPCA 2027 wants it in an appendix after the references (see below)
+    \PaperIfVenue{hpca27}{}{\section*{Acknowledgment}\input{backmatter/ai-use}}
+  \fi
+\fi
+
+\bibliographystyle{IEEEtranS}
+\ifPaperNociteAll\nocite{*}\fi
+\bibliography{refs}
+
+\newif\ifPaperIEEEAppendices \PaperIEEEAppendicesfalse
+\ifPaperAppendix\PaperIEEEAppendicestrue\fi
+\ifPaperAIUse\ifPaperAcks\else\PaperIfVenue{hpca27}{\PaperIEEEAppendicestrue}{}\fi\fi
+\ifPaperIEEEAppendices
+  \appendices
+  \ifPaperAIUse\ifPaperAcks\else\PaperIfVenue{hpca27}{\section{AI use}\input{backmatter/ai-use}}{}\fi\fi
+  \ifPaperAppendix\input{backmatter/appendix}\fi
+\fi
+\PrintTBDIndex
+\end{document}

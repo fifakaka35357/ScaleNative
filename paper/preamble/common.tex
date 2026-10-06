@@ -1,0 +1,232 @@
+%% ============================================================================
+%% preamble/common.tex -- packages and macros shared by both entry files.
+%% Input AFTER \documentclass.  Nothing here may depend on the document class:
+%% the same section files are compiled under acmart and under IEEEtran.
+%% Requires preamble/switches.tex to have been read (before \documentclass).
+%% No spacing commands (\vspace, changed skips, ...) anywhere: two of the four
+%% venues reject papers that squeeze the layout.
+%% ============================================================================
+\makeatletter
+\RequirePackage{etoolbox}
+\RequirePackage{graphicx}
+\RequirePackage{xcolor}
+\RequirePackage{booktabs}
+\RequirePackage{array}
+\RequirePackage{xspace}
+
+\newcommand{\PaperWarn}[1]{\typeout{[paper] WARNING: #1}}
+
+% ---- the PDF records nothing about the machine that built it: no file names of the included figures and
+% no engine banner (pdfTeX writes both by default; other engines do not know this parameter)
+\ifdefined\pdfsuppressptexinfo \pdfsuppressptexinfo=-1 \fi
+
+% ---- colours (dark enough to survive grey-scale printing) -----------------------
+\definecolor{PaperTBD}{RGB}{176,58,0}     % placeholders
+\definecolor{PaperStub}{RGB}{64,64,64}    % one-sentence paragraph stubs
+\definecolor{PaperTag}{RGB}{110,110,110}  % paragraph ids
+\definecolor{PaperFill}{RGB}{140,140,140} % filler text
+\definecolor{PaperBox}{RGB}{90,90,90}     % empty figure and table frames
+
+% ============================================================================
+% 1. Placeholders
+%    \TBD{<id>}{<what it waits for>}   prints  [TBD-<id>: <what it waits for>]
+%    \citeTBD{<source>}                prints  [ref: <source>]   (a reference still to be added to refs.bib)
+%    One id per open item, the same id wherever the item appears.  Classes:
+%      D<n> hardware design items   E<n> experiments   P performance-data source
+%      C contribution structure     N names/wording    W text still to be written
+%    \PaperTBD = show | blank | none (preamble/switches.tex):
+%      show   visible, coloured, listed in the index of open placeholders
+%      blank  same layout (as a build without paragraph tags), invisible ink.  The words are
+%             still in the PDF text layer: use it to check page counts, never for a submission
+%      none   removed, together with the space in front of it
+% ============================================================================
+\newcommand{\PaperTBDIndexSkip}{W}        % comma list of classes left out of the printed index
+\newcommand{\pt@tbdtext}[2]{[TBD-#1: #2]}
+\gdef\pt@curpar{--}
+\DeclareRobustCommand{\TBD}[2]{%
+  \ifcase\PaperTBDmode
+    \pt@index{#1}{#2}%
+    \begingroup\sffamily\color{PaperTBD}\pt@tbdtext{#1}{#2}\endgroup
+  \or
+    \begingroup\sffamily\color{white}\pt@tbdtext{#1}{#2}\endgroup
+  \else
+    \unskip
+  \fi}
+\DeclareRobustCommand{\citeTBD}[1]{%
+  \ifcase\PaperTBDmode
+    \pt@index{REF}{#1}%
+    \begingroup\sffamily\color{PaperTBD}[ref: #1]\endgroup
+  \or
+    \begingroup\sffamily\color{white}[ref: #1]\endgroup
+  \else
+    \unskip
+  \fi}
+% index of open placeholders: one line per occurrence, written through the .aux file
+\newcommand{\pt@index}[2]{%
+  \ifPaperTBDIndex
+    \addtocontents{tbd}{\protect\PaperTBDEntry{#1}{#2}{\pt@curpar}{\thepage}}%
+  \fi}
+\newcommand{\PaperTBDEntry}[4]{% id, text, paragraph id, page
+  \begingroup
+  \def\pt@skip{0}%
+  \def\do##1{\ifstrequal{##1}{#1}{\def\pt@skip{1}}{}}%
+  \expandafter\docsvlist\expandafter{\PaperTBDIndexSkip}%
+  \ifnum\pt@skip=0
+    \par\noindent\hangindent=1em\hangafter=1
+    {\sffamily\color{PaperTBD}TBD-#1}\quad #3, p.\,#4: #2\par
+  \fi
+  \endgroup}
+\newcommand{\PrintTBDIndex}{%
+  \ifPaperTBDIndex
+    \clearpage
+    \section*{Open placeholders in this draft}%
+    {\footnotesize
+     \noindent This list is generated from the \texttt{\string\TBD} marks in the text and is not part
+     of the paper.  Each line gives the placeholder id, the paragraph id and page where it occurs, and
+     what it waits for.  Marks of class \PaperTBDIndexSkip{} (text still to be written) are not listed.\par
+     \pt@readtbd}%
+  \fi}
+% (the kernel's \@starttoc cannot be used: amsart-based classes give it a different signature)
+\newcommand{\pt@readtbd}{%
+  \begingroup\makeatletter\@input{\jobname.tbd}\endgroup
+  \if@filesw
+    \newwrite\tf@tbd
+    \immediate\openout\tf@tbd=\jobname.tbd\relax
+  \fi}
+
+% ============================================================================
+% 2. Paragraph units
+%    Every paragraph starts with a comment line  %% P:<id>  (read by check_align.py)
+%    followed by \ptag{<id>}, which prints the id in small type when \PaperParTags is on.
+%    \Intent{...}   one-sentence stub: what the paragraph will say (delete when written)
+%    \fillto{<n>}   with \PaperFill=yes, prints <n> filler words: the paragraph's word budget
+%    \parhead{...}  run-in paragraph heading that works in both classes
+%    \ProtoStatus{...}  the closing "Prototype status:" sentence of a microarchitecture subsection
+% ============================================================================
+\DeclareRobustCommand{\ptag}[1]{%
+  \gdef\pt@curpar{#1}%
+  \ifPaperParTags\leavevmode{\scriptsize\sffamily\upshape\mdseries\color{PaperTag}[#1]}\space\fi
+  \ignorespaces}
+\DeclareRobustCommand{\Intent}[1]{\ifPaperFill\else{\itshape\color{PaperStub}#1}\fi}
+\DeclareRobustCommand{\parhead}[1]{\textbf{#1}\space\ignorespaces}
+\DeclareRobustCommand{\ProtoStatus}[1]{%   (nothing is printed while the sentence is only a hidden placeholder)
+  \ifPaperFill\else\setbox\z@\hbox{#1}\ifdim\wd\z@>\z@ \textit{Prototype status:} #1\fi\fi}
+
+% filler words (their mean length matches the running text of the earlier English draft)
+\newcount\pt@fi \newcount\pt@fk \newcount\pt@fK
+\global\pt@fK=0
+\begingroup
+\def\do#1{\expandafter\gdef\csname pt@fw@\the\pt@fK\endcsname{#1}\global\advance\pt@fK by 1 }
+\docsvlist{filler,text,stands,in,for,a,paragraph,that,has,not,been,written,yet,and,it,has,exactly,
+  the,number,of,words,that,the,page,budget,assigns,to,this,paragraph,so,that,the,page,count,of,this,
+  build,approximates,what,the,finished,manuscript,will,require,nothing,in,these,sentences,describes,
+  the,architecture,the,evaluation,or,any,result,and,every,word,of,it,disappears,when,the,real,
+  paragraph,is,written,the,vocabulary,deliberately,resembles,ordinary,technical,prose,with,a,few,
+  longer,expressions,such,as,implementation,characteristics,representation,and,microarchitecture,
+  because,line,breaking,and,hyphenation,depend,on,word,length,a,reader,should,ignore,the,wording,
+  and,look,only,at,how,much,space,the,surrounding,section,occupies,relative,to,its,figures,tables,
+  and,captions,when,the,budget,changes,the,numbers,attached,to,the,individual,paragraphs,change,
+  with,it,and,the,pagination,follows,without,any,further,manual,intervention}
+\endgroup
+\global\pt@fk=0
+\newcommand{\pt@filler}[1]{%
+  \begingroup\color{PaperFill}\pt@fi=0
+  \loop\ifnum\pt@fi<#1\relax
+    \csname pt@fw@\the\pt@fk\endcsname\space
+    \global\advance\pt@fk by 1
+    \ifnum\pt@fk=\pt@fK \global\pt@fk=0 \fi
+    \advance\pt@fi by 1
+  \repeat
+  \unskip.\endgroup}
+\DeclareRobustCommand{\fillto}[1]{\ifPaperFill\pt@filler{#1}\fi}
+
+% ============================================================================
+% 3. Figure and table slots
+%    \FigSlot{<label>}{<what it shows>}{<status>}{<caption>}
+%    \TabSlot{<label>}{<what it lists>}{<status>}{<caption>}
+%    Width class and body height come from preamble/float-budget.tex, so that an
+%    empty slot takes exactly the space the page budget gives it.  Widths are the
+%    drawing widths (3.33 in single column, 7.0 in full width) in both classes;
+%    a finished figure is included at its natural size and is never scaled, so
+%    that lettering drawn at 8 pt stays at 8 pt.
+%    When a figure file exists:  \FloatFile{<label>}{figures/<file>}  in float-budget.tex.
+%    <what it shows> is also the alternative text of the figure (\Description in acmart): for a
+%    finished figure, write it as a description of what the figure actually shows.
+%    When a table is typeset, replace its \TabSlot by a table environment that keeps
+%    the same \label and the same  %% P:<id>  marker line, names the slot with
+%    \SlotName{<label>} and reads the body from tables/<file>.tex; the body starts with \TableSize.
+% ============================================================================
+\newlength{\PaperColW}  \setlength{\PaperColW}{3.33in}
+\newlength{\PaperFullW} \setlength{\PaperFullW}{7.0in}
+\newcommand{\FloatBudget}[4]{\csgdef{pf@w@#1}{#2}\csgdef{pf@h@#1}{#3}\csgdef{pf@src@#1}{#4}}
+\newcommand{\FloatFile}[2]{\csgdef{pf@file@#1}{#2}}
+\newlength{\pf@W}
+\newsavebox{\pf@gbox}
+\newcommand{\pf@setwidth}[1]{%
+  \ifcsdef{pf@w@#1}{}{\PackageError{paper}{No \string\FloatBudget\space entry for `#1'}{Add it to preamble/float-budget.tex.}}%
+  \ifcsstring{pf@w@#1}{F}{\setlength{\pf@W}{\PaperFullW}\def\pf@Wtxt{7.0}}{\setlength{\pf@W}{\PaperColW}\def\pf@Wtxt{3.33}}}
+\newcommand{\pf@body}[5]{% label, kind word, index class, what, status
+  \ifcsdef{pf@file@#1}{%
+    \sbox{\pf@gbox}{\includegraphics{\csuse{pf@file@#1}}}%
+    \@tempdima=\wd\pf@gbox \advance\@tempdima by -\pf@W
+    \ifdim\@tempdima<0pt \@tempdima=-\@tempdima\fi
+    \ifdim\@tempdima>1pt
+      \PaperWarn{#1: file is \the\wd\pf@gbox\space wide, the slot is \the\pf@W\space wide; draw it at the slot width, it is not scaled}%
+    \fi
+    \usebox{\pf@gbox}%
+  }{%
+    \begingroup\setlength{\fboxsep}{3pt}\setlength{\fboxrule}{0.4pt}\color{PaperBox}%
+    \fbox{\parbox[c][\dimexpr \csuse{pf@h@#1}in-2\fboxsep-2\fboxrule\relax][c]{\dimexpr\pf@W-2\fboxsep-2\fboxrule\relax}{%
+      \centering\footnotesize\sffamily\upshape
+      \textbf{#2 slot \detokenize{#1}}\quad(\pf@Wtxt\,in $\times$ \csuse{pf@h@#1}\,in)\par
+      Shows: #4.\par
+      Status: #5.}}%
+    \endgroup
+    \ifPaperTBDIndex\addtocontents{tbd}{\protect\PaperTBDEntry{#3}{#5}{\detokenize{#1}}{\thepage}}\fi
+  }}
+\providecommand{\Description}[2][]{}       % acmart has it (alternative text); IEEEtran does not
+\newcommand{\FigSlot}[4]{%
+  \pf@setwidth{#1}\gdef\pt@curpar{#1}%
+  \ifcsstring{pf@w@#1}{F}%
+    {\begin{figure*}[t]\centering\pf@body{#1}{Figure}{FIG}{#2}{#3}\caption{#4}\label{#1}\Description{#2}\end{figure*}}%
+    {\begin{figure}[t]\centering\pf@body{#1}{Figure}{FIG}{#2}{#3}\caption{#4}\label{#1}\Description{#2}\end{figure}}}
+\newcommand{\TabSlot}[4]{%
+  \pf@setwidth{#1}\gdef\pt@curpar{#1}%
+  \ifcsstring{pf@w@#1}{F}%
+    {\begin{table*}[t]\centering\caption{#4}\label{#1}\pf@body{#1}{Table}{TAB}{#2}{#3}\end{table*}}%
+    {\begin{table}[t]\centering\caption{#4}\label{#1}\pf@body{#1}{Table}{TAB}{#2}{#3}\end{table}}}
+% \SlotName{<label>}: what \FigSlot and \TabSlot do themselves -- the index of open placeholders names the
+% float in which a placeholder stands.  Written once at the top of a float that is typeset by hand.
+\newcommand{\SlotName}[1]{\gdef\pt@curpar{#1}}
+% \TableSize: the type size inside typeset tables, 8 pt in every page format (\footnotesize is 8 pt where
+% the body is set in 10 pt and 7 pt where it is set in 9 pt; there \small is 8 pt).  The body size is
+% read once at \begin{document}: inside a float the current size is not a guide (IEEEtran switches to
+% \footnotesize in every table float).
+\newcommand{\TableSize}{\footnotesize}
+\AtBeginDocument{\begingroup\normalsize\ifdim\f@size\p@<9.5\p@ \gdef\TableSize{\small}\fi\endgroup}
+% geometry of the text block, read by page_report.py (written at the end: acmart becomes two-column in \maketitle)
+\AtEndDocument{%
+  \@tempdima=1in \advance\@tempdima by \voffset \advance\@tempdima by \topmargin
+  \advance\@tempdima by \headheight \advance\@tempdima by \headsep
+  \typeout{[paper] geometry: top=\the\@tempdima\space textheight=\the\textheight\space textwidth=\the\textwidth\space columnwidth=\the\columnwidth}}
+\AtEndDocument{%
+  \ifdim\PaperColW>\columnwidth
+    \PaperWarn{single-column slot (\the\PaperColW) is wider than the column (\the\columnwidth)}\fi
+  \ifdim\PaperFullW>\textwidth
+    \PaperWarn{full-width slot (\the\PaperFullW) is wider than the text block (\the\textwidth)}\fi}
+
+% ============================================================================
+% 4. Cross references (the words differ by class; the entry files may redefine them)
+% ============================================================================
+\newcommand{\figrefname}{Figure}
+\newcommand{\tabrefname}{Table}
+\newcommand{\secrefname}{Section}
+\newcommand{\figref}[1]{\figrefname~\ref{#1}}
+\newcommand{\tabref}[1]{\tabrefname~\ref{#1}}
+\newcommand{\secref}[1]{\secrefname~\ref{#1}}
+
+\makeatother
+\input{preamble/meta}
+\input{preamble/terms}
+\input{preamble/float-budget}
+\endinput

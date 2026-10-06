@@ -1,0 +1,92 @@
+%% ============================================================================
+%% sections/05-methodology.tex -- Evaluation Methodology
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 700 words of running text.
+%% ============================================================================
+
+\section{Evaluation Methodology}\label{sec:method}
+
+%% P:fig8-cap
+\FigSlot{fig:flow}%
+  {Flow diagram with two columns of boxes. Left, the inputs: golden model plus tests, synthetic tensors, RTL plus configuration, flow plus PDK setup, and workload inventory. Right, the forms of evidence: RTL simulation, synthesis slice, post-route EDA estimate, analytical derivation and, in a dotted box, model results. Solid lines join the golden model, the synthetic tensors and the RTL to RTL simulation; the RTL and the flow setup to synthesis slice and to post-route EDA estimate; and the workload inventory to analytical derivation. A dotted line runs from the workload inventory through a dotted box marked model, to be defined, to the model results}%
+  {drawn; file figures/fig-flow.pdf; the modeling step is an open slot}%
+  {Planned evaluation flow. Left: inputs. Right: the form of evidence that labels each number. Workload inventories are derived analytically and do not pass through a model. Dotted parts are open: the model has not been chosen, and only one of its inputs is drawn. The numerical front end that runs the synthetic tensors is not drawn.}
+
+\subsection{Configurations and Evidence Types}\label{sec:configs}
+
+%% P:tab4-cap
+\begin{table}[t]
+\centering\SlotName{tab:configs}%
+\caption{Configurations and forms of evidence.}\label{tab:configs}
+\input{tables/tab-configs}
+\end{table}
+
+%% P:sec5.1-p1
+\ptag{sec5.1-p1}%
+Every number carries two labels: one of three configurations \TBD{N}{neutral names for the three configurations} and a form of evidence (\tabref{tab:configs}, \figref{fig:flow}).
+The fixes of \cfgCorrected include error reporting to the command processor, the contract of the single-port \Lii macros and scale write-back \TBD{D7}{final list of fixes, pending the merge plan}.
+A physical result is never called measured.
+
+\subsection{Metrics, Operating Regimes and \texorpdfstring{$K$}{K}}\label{sec:metrics}
+
+%% P:sec5.2-p1
+\ptag{sec5.2-p1}%
+We report latency and throughput at three scopes: the end-to-end period of the complete chain, the steady-state throughput of useful results, and the local period of the \handoff and consumption stage.
+A local gain does not imply an end-to-end gain, and end-to-end parity does not show equal \handoff cost.
+The other metrics are area and timing, SRAM transactions, numerical error against the common error budget, and energy as action counts times sourced unit costs plus leakage, left open where a cost has no source.
+Two operating regimes are covered: \Lii-resident, with operands already in local storage, and supply-limited, where the PE port bounds their delivery \TBD{D4}{definition of the supply-limited regime at the planned port width}.
+The total $K$ of a GEMM is kept apart from the $K_c$ of one tile, and placements are compared over the range of $K$ that is legal for all of them \TBD{D7}{legal range of K under the target operand loader}.
+
+\subsection{Numerical Protocol}\label{sec:numerics}
+
+%% P:sec5.3-p1
+\ptag{sec5.3-p1}%
+Numerical order is frozen before performance is compared (\secref{sec:placements}), down to the final consumption point.
+A bit-accurate reference (golden) model defines the hardware semantics; all placements get the same tensors and seeds.
+The inputs are synthetic: we cannot run the models of \secref{sec:workload-method} and do not use their weights.
+Shapes come from the workload's matrix products; activations and cache entries follow the quantization rules of the reference implementation, which gives none for weights \TBD{E3}{value distributions and weight quantization rule of the synthetic tensors}.
+Quality means numerical error against a reference-precision result, not a task metric.
+
+\subsection{Workload: What Is Counted and How}\label{sec:workload-method}
+
+%% P:tab5-cap
+\begin{table}[t]
+\centering\SlotName{tab:mac-share}%
+\caption{Share of MACs per decoded token by operand data type of the reference implementations (\evAnalytic).}\label{tab:mac-share}
+\input{tables/tab-mac-share}
+\end{table}
+
+%% P:sec5.4-p1
+\ptag{sec5.4-p1}%
+The workload is the decode step of the three models of \secref{sec:bg-workload} \cite{DeepSeekAI2026V4ProHF,DeepSeekAI2026V41FlashHF} \citeTBD{DeepSeek-V4-Flash model repository}; V4-Flash is counted with the V4-Pro code under its own configuration.
+After prefill the reference implementation feeds one token per step, so counts are per sequence and per new token at context length $L$.
+MACs are counted only inside matrix products, other operations separately.
+
+%% P:sec5.4-p2
+\ptag{sec5.4-p2}%
+The counts are an \evAnalytic; no model is run.
+Each matrix product contributes rows times inner-product length times layers, and other operations follow the loop bounds in the source.
+Operand types follow the reference code (\tabref{tab:mac-share}); index scoring is counted as 4-bit by 4-bit as its authors describe it, although the code computes it in BF16.
+For V4.1-Flash at 64K and above, re-scoring layers are counted over the candidate pool, as in its report \cite{DeepSeekAI2026V41Flash}; the reference code scores every entry, which adds 58.8\% to the MACs per token at 1M.
+
+\subsection{Model Fidelity and the Source of Performance Data}\label{sec:fidelity}
+
+%% P:sec5.5-p1
+\ptag{sec5.5-p1}%
+Single-PE latency comes from \evRTL; the fused placement and everything beyond one PE need a model \TBD{P}{source of performance data}.
+Whichever model is used, its results are labeled as such and the workload inventory is an input, not a result.
+A model calibrated against RTL is calibrated on \cfgAsBuilt, then on \cfgCorrected with new held-out points; reproducing a known fault of \cfgAsBuilt is agreement with the RTL, not a performance sample.
+
+\subsection{Physical Implementation}\label{sec:physical}
+
+%% P:sec5.6-p1
+\ptag{sec5.6-p1}%
+OpenROAD-flow-scripts, an open-source flow, implements the RTL on the ASAP7 predictive 7-nm PDK \citeTBD{ASAP7 PDK; open-source implementation flow}.
+Area and timing come from synthesis and place-and-route runs under the stated library, constraint and SRAM-model assumptions; each is a \evPostRoute, not a silicon measurement.
+Runs use a single process corner, and the liberty views of the SRAM macros are generated: their zero leakage and zero minimum period are gaps in the model, not zero cost.
+Power is not reported until an activity-based method exists.

@@ -1,0 +1,13 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-tensor.tex -- Tensor unit: standalone wrapper, one figure -> one PDF page of 7.0 in x 1.9 in.
+%% The drawing itself is in fig-tensor-body.tex (one AFcanvas); the style is scalenative-figstyle.sty.
+%% Build and check:  ./build-figures.sh fig-tensor
+\documentclass[border=0pt]{standalone}
+\usepackage{scalenative-figstyle}
+%% No dates, banner, tool version or trailer id in the PDF, so that a rebuild gives the same file (pdfTeX only).
+\ifdefined\pdfinfoomitdate \pdfinfoomitdate=1 \pdfsuppressptexinfo=-1 \pdftrailerid{} \pdfinfo{/Producer (pdfTeX) /Creator (TeX)}\fi
+\begin{document}%
+\input{fig-tensor-body}%
+\end{document}

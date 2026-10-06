@@ -1,0 +1,23 @@
+%% ============================================================================
+%% sections/09-future-work.tex -- Future Work
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 110 words of running text.
+%% ============================================================================
+
+\section{Future Work}\label{sec:future}
+
+%% P:sec9-p1
+\ptag{sec9-p1}%
+3D stacking and a 3D mesh extend the 2D mesh assumed here.
+The SRAMs have no error detection or correction; adding it awaits a wider choice of memory macros or another process.
+The PE has no debug module, since simulation does not need one.
+The mesh-level Control Core, not evaluated here, could later be an out-of-order core, and larger meshes could use one core per control domain.
+
+%% P:sec9-p2
+\ptag{sec9-p2}%
+The mesh has one PE type and reserves capability bits in idle reports and task descriptors; a heterogeneous mesh of two PE types and its task mapping come later.

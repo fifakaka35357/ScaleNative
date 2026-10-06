@@ -1,0 +1,129 @@
+%% ============================================================================
+%% sections/04-microarchitecture.tex -- Microarchitecture
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 830 words of running text.
+%% ============================================================================
+
+\section{Microarchitecture}\label{sec:uarch}
+
+\subsection{PE Organization and Evaluation Boundary}\label{sec:pe-org}
+
+%% P:fig4-cap
+\FigSlot{fig:system}%
+  {Block diagram of the target system. A host outside the chip connects to a host interface. Inside the SoC frame, the host interface, a Control Core and an L3 store of 128 to 256 MiB sit above a mesh of identical PEs that is labeled 8 by 8 PE mesh; fifteen of its cells and an ellipsis are drawn, joined by short two-way links, and each of the three blocks above attaches to the top of the mesh. One PE is enlarged: an Ibex CPU, L1, a DMA engine and a command processor above a Tensor unit that feeds a Vector unit of 2 cores through a thick arrow, an L2 of 128 KiB below them, and an inbound port on the left edge labeled 64 B/cycle}%
+  {drawn; file figures/fig-system.pdf}%
+  {System organization of the target design: a mesh of identical PEs, whose links are the on-chip network, with a host interface, a Control Core and a shared L3. One PE is enlarged; the thick arrow is the Tensor-to-Vector hand-off. The prototype RTL is one PE with a single Vector core and a 32~KiB L2; nothing above the PE is implemented.}
+
+%% P:fig5-cap
+\FigSlot{fig:pe}%
+  {Block diagram of one PE of the target design. A control column on the left holds the command processor, the Ibex CPU, L1 with L1D of 8 KiB and L1I of 4 KiB, the DMA engine and the NoC endpoint; the PE frame carries an inbound port labeled 64 B/cycle and an outbound port. In the control column, the Ibex CPU connects to L1, L1D feeds the command processor, the NoC endpoint feeds L1I and connects to the two ports, and the DMA engine connects to the NoC endpoint. In the Tensor unit, a loader and an operand buffer feed a 16 by 16 MAC array, and stacked output banks feed two rows, each a row scan and a block formation that ends in an outlet, outlet 0 and outlet 1. From each outlet a thick line runs through a fast-lane queue to an ingress check and into Vector core 0 or Vector core 1 of the Vector unit. An L2 arbiter over an L2 of 128 KiB spans the bottom; the loader, the Ibex CPU, the NoC endpoint and Vector core 0 connect to it with solid lines and Vector core 1 with a dotted line. Dashed lines carry control from the command processor to the Tensor unit, the Vector cores and the DMA engine. Dash-dotted red lines labeled reject and error run from the ingress checks, the Vector cores and the Tensor unit to the command processor}%
+  {drawn; file figures/fig-pe.pdf}%
+  {PE microarchitecture (target design). Thick lines: the hand-off path; dash-dotted red: errors and rejects; dotted: undecided; stack and queue symbols imply no counts or depths. Among the differences of today's prototype RTL: one Vector core and one fast lane, a 32~KiB L2 that the DMA engine accesses directly, and execution-time errors that do not yet reach the command processor.}
+
+%% P:sec4.1-p1
+\ptag{sec4.1-p1}%
+PEs of one type form a mesh whose links are the on-chip network (NoC), over which a mesh-level Control Core dispatches work (\figref{fig:system}).
+A PE holds one \TensorUnit, an output-stationary systolic array of $16\times16$ cells, and two \VectorCore{}s (\figref{fig:pe}).
+The Tensor and Vector sides share \Lii (128\,KiB) and a command processor but no arithmetic; an Ibex RISC-V CPU~\citeTBD{Ibex}, which has its own L1 memories, feeds the command processor with descriptors.
+The local port into each PE (the pentagon in \figref{fig:system}, which draws the inbound direction only) is planned at 64 bytes of payload per cycle
+\TBD{D4}{channels and handshake of the PE port, pending the network design};
+shared storage at the mesh edge (L3) is planned at 128--256\,MiB per $8\times8$ mesh
+\TBD{D3}{bandwidth from shared storage into the mesh}.
+The mesh size is a planning point, and where the host interface, the Control Core and L3 attach to the mesh is not fixed.
+Where the design is open, \figref{fig:pe} is generic: its two \VectorCore{}s are drawn equal, the outgoing port has no width, and the link from Vector core~1 to \Lii is dotted.
+
+%% P:sec4.1-p2
+\ptag{sec4.1-p2}%
+The evaluation boundary is the PE interface.
+Inside it, the PE is evaluated in RTL and the fused epilogue as a \evSlice with a \evModel.
+Everything outside is modeled: on-chip network, shared storage and off-chip memory
+\TBD{D3}{whether network endpoints and shared storage enter RTL};
+\figref{fig:system} draws neither this boundary nor off-chip memory.
+\ProtoStatus{one \VectorCore, 32\,KiB of \Lii, a 32-bit stream port, no RTL outside the PE; run-time errors never reach the command processor.}
+
+\subsection{Tensor Producer}\label{sec:producer}
+
+%% P:fig6-cap
+\FigSlot{fig:tensor}%
+  {Diagram of the Tensor unit of the target design in three panels. Panel (a), array organization: a loader fed from L2 sends weights through an operand buffer into the top of a 16 by 16 MAC array and activations into its left side; a tile controller reaches the edge of the array through a dashed line; stacked output banks sit below the array; a line of text reads 2048 / 1024 / 256 MAC per cycle. Panel (b), one MAC cell, top to bottom: input unpack for 4-bit, 8-bit and BF16 operands, multipliers of 4-bit by 4-bit, local reduce, scale correction, and a wide accumulator with a preload port. Panel (c), block formation at the outlets: the output banks feed two row scans; the upper block formation is opened into a max-exponent block and 16 stacked quantizers with an escape-handling selector beside them, and the lower one is a single block; thick lines, the upper one labeled capsule, lead to outlet 0 and outlet 1, and a dash-dotted red line leads to an error port}%
+  {drawn; file figures/fig-tensor.pdf; parts of the design that are not fixed are in generic form}%
+  {Tensor unit of the target design; thick lines mark the capsule hand-off and the dash-dotted line the error path to the command processor. The prototype has one outlet and one output bank, loads both operands before each tile, performs 1024 / 512 / 256 multiply-accumulates per cycle, and lacks preload, escape selection and the error path.}
+
+%% P:sec4.2-p1
+\ptag{sec4.2-p1}%
+Each cell of the array (\figref{fig:tensor}) is a fused multi-precision MAC built from $4\times4$-bit multiplier primitives, with the prototype's input modes (one BF16, one MXINT8, two FP8 or four FP4 operand pairs per cycle), a wide floating-point accumulator and a 61-bit snapshot.
+The target design performs 2048, 1024 and 256 multiply--accumulates per PE per cycle in its 4-bit, 8-bit and BF16 tiers
+\TBD{D5}{which input modes map to each tier}.
+The target rates, printed in \figref{fig:tensor}, are nominal, and the BF16 one is provisional.
+The figure is generic where the design is not fixed: the cell interior, the number of output banks, the tile-controller connection, the preload source and escape handling.
+
+%% P:sec4.2-p2
+\ptag{sec4.2-p2}%
+A row scan forms the output block at the outlet: it takes the row's largest exponent and narrows 48-bit mantissas to 16 bits, the first narrowing point; a tile yields 16 \capsule{}s.
+A hard escape (NaN or infinity) ends the transaction in error; a soft escape (underflow within a block) is consumed and counted by default.
+The fixed cost per tile is planned at 5 cycles
+\TBD{D6}{timing of this overhead, not yet evaluated}.
+\ProtoStatus{56 fixed cycles per tile by the tile controller's state sequence (not simulated), after operands are moved into the \TensorUnit's operand buffer; escape rows are dropped.}
+
+\subsection{Tensor-to-Vector Hand-off and Fail-Visibility}\label{sec:handoff}
+
+%% P:sec4.3-p1
+\ptag{sec4.3-p1}%
+The \FastPath carries each output row from the array outlet to a \VectorCore as one \capsule: a 256-bit payload plus metadata (block size, scale format, scale epoch, context, tag, row number and a last-row mark).
+It is a one-way valid/ready FIFO whose ready signal gates the row scan, so a slow consumer back-pressures the producer.
+Each of the two outlet ports has its own row scan, block formation and \FastPath
+\TBD{D1}{buffering, credit return and check position of the two fast lanes}.
+
+%% P:sec4.3-p2
+\ptag{sec4.3-p2}%
+Each \capsule is checked at ingress, ahead of the consumer's operand queue: block size, scale format, scale epoch and identity must match what the consuming command expects.
+Any mismatch is \failvisible: it reaches the command processor with its own error type, is attributed to the original transaction and blocks publication.
+Checking scales at dispatch instead, against the object table of \secref{sec:commit}, is a candidate alternative.
+\ProtoStatus{one \FastPath, with three format checks only; a mismatch stalls the consumer until a timeout near 1023 cycles.}
+
+\subsection{Vector Consumer and the Second Hop}\label{sec:consumer}
+
+%% P:fig7-cap
+\FigSlot{fig:vector}%
+  {Block diagram of the Vector unit of the target design. Two thick lines enter from the left, from outlet 0 and outlet 1, each through a fast-lane queue to an ingress check. Vector core 0 is drawn block by block: ingress check, operand queue, scale adapter, a lanes block with a multiplier and an adder, a group holding reduce, exp, top-k filter and renorm plus quantize above a dotted slot for output accumulators, then write-back of payload plus scale sidecar and a compact store, both leading to L2 on the right. A resident-read bar along the bottom of the core brings operands from L2 back to the ingress check, and a decode block receives a dashed control line from the command processor. Vector core 1 is folded into an ingress check, a lanes block and a dotted slot marked to be defined, with a dotted link to L2. Dash-dotted red lines labeled reject and error run from both cores to the command processor. A bracket marks the second outlet, its fast lane and the second core as omitted in a single-Vector PE}%
+  {drawn; file figures/fig-vector.pdf; the form of the two Vector cores is still open}%
+  {Vector unit of the target design: each Tensor outlet feeds one Vector core through its own fast lane (thick: hand-off path and ingress check). Dotted items are still open; the bracket marks what a single-Vector PE omits. \textit{Prototype status:} one 16-lane core; second core, multiply-add lanes, exp, top-k filter, sidecar write-back and reject/error reporting not yet in RTL.}
+
+%% P:sec4.4-p1
+\ptag{sec4.4-p1}%
+The prototype's \VectorCore computes in block floating point: 16 lanes of 16-bit mantissas under one exponent per block.
+It provides residual add, rescale, in-block maximum and sum, a sum of squares in a 40-bit window, and packing; the target design (\figref{fig:vector}) adds index-score post-processing and top-$k$ selection.
+The figure shows core~0 at block level and core~1 folded; its box sizes do not indicate compute, and operands read back from \Lii pass the same ingress check.
+The PE must stay fully functional with one \VectorCore masked; the candidates are a pipelined plus a general-purpose core, or two identical cores
+\TBD{D1}{form, width and division of labor of the two Vector cores}.
+
+%% P:sec4.4-p2
+\ptag{sec4.4-p2}%
+The second hop writes the result to \Lii or feeds the next GEMM.
+A write renormalizes it, the second narrowing point, and commits payload plus block exponents in the \sidecar for later re-consumption.
+A feed first converts it to that GEMM's input format.
+\ProtoStatus{write-back stores only the payload, so neither the round trip nor the path into a next GEMM closes; no command can yet invoke the sum of squares.}
+
+\subsection{L2, Commit Protocol and Control}\label{sec:commit}
+
+%% P:sec4.5-p1
+\ptag{sec4.5-p1}%
+\Lii obeys one contract for its behavioral model and single-port macros: a bank serves one access at a time and acknowledges only requests it served, and sub-word updates (a \sidecar entry) execute atomically.
+A commit writes payload and scales; the command processor records the object in a bounded table, grants read leases and publishes it once the transaction retires error-free.
+The command processor rejects illegal descriptors at fetch, dispatches by per-unit credits and settles each command's state and credit exactly once
+\TBD{D7}{L2 contract and write-back design open}.
+\ProtoStatus{with macros a conflicting read can return stale data marked valid; no object table, leases or publication.}
+
+\subsection{One RTL, Several Hand-offs}\label{sec:one-rtl}
+
+%% P:sec4.6-p1
+\ptag{sec4.6-p1}%
+Up to four placements are compile-time configurations of one RTL, differing only at the \handoff.
+\armSD swaps block formation for outlet converters and scalar lanes; \armBM adds scale write-back and read-back; \armSM adds scalar storage
+\TBD{E4}{whether the scalar-through-storage placement is built in RTL or modeled}.
+\ProtoStatus{only \armBD exists.}

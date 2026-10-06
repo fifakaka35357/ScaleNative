@@ -1,0 +1,157 @@
+%% ============================================================================
+%% preamble/switches.tex -- every build switch of the paper, with its default.
+%% Input by main-acm.tex and main-ieee.tex BEFORE \documentclass (the switches
+%% choose class options), so this file uses TeX primitives and kernel macros only.
+%%
+%% A switch is a macro holding a word.  Set it on the command line, e.g.
+%%     pdflatex '\def\PaperMode{submit}\def\PaperVenue{asplos27}\input{main-acm}'
+%% or through build.sh (./build.sh --help).  Anything not set takes the default.
+%%
+%%  switch              values                              default
+%%  \PaperMode          share | submit                      share
+%%  \PaperVenue         none | asplos27 | micro26 | isca26 | hpca27      none
+%%  \PaperSubmissionID  free text (number given by the venue)            NaN
+%%  \PaperAnon          auto | yes | no                     auto  (= yes in submit mode)
+%%  \PaperAcks          auto | yes | no                     auto  (= yes in share mode)
+%%  \PaperAIUse         yes | no                            no    (statement lives in the repository README for now)
+%%  \PaperAppendix      yes | no                            no
+%%  \PaperRepo          auto | show | anon | none           auto  (share: show; submit: anon if \PaperRepoAnonURL is set, else none)
+%%  \PaperNotice        auto | yes | no                     auto  (= yes in share mode: "working draft" note on page 1)
+%%  \PaperTBD           show | blank | none                 show  (none when \PaperFill=yes)
+%%  \PaperTBDIndex      auto | yes | no                     auto  (= yes in share mode while placeholders are shown)
+%%  \PaperParTags       auto | yes | no                     auto  (= yes in share mode while placeholders are shown)
+%%  \PaperFill          yes | no                            no    (pad every paragraph to its word budget)
+%%  \PaperNociteAll     yes | no                            no    (print the whole bibliography; a test of refs.bib; always on with \PaperFill=yes)
+%%  \PaperACMFormat     auto | sigplan | sigconf            auto  (sigplan; sigconf when the venue is micro26)
+%%
+%% Fixed rule, not a switch: a venue banner ("... Submission #N -- Confidential
+%% Draft ...") is printed only when \PaperMode=submit AND the venue has one.
+%% A share build never prints the banner of any venue.
+%% ============================================================================
+
+% ---- helpers (no @ in names: this file is read with normal catcodes) ----------
+\def\PaperSetDefault#1#2{\ifdefined#1\edef#1{#1}\else\def#1{#2}\fi}
+\def\PaperValEndMark{\PaperValEnd}
+\def\PaperValidate#1#2{% <switch macro>{<comma list of allowed words>}
+  \def\PaperTmpOK{0}\PaperValLoop#1#2,\PaperValEnd,%
+  \ifnum\PaperTmpOK=0
+    \errmessage{[paper] switch \string#1 is set to `#1'; allowed: #2}%
+  \fi}
+\def\PaperValLoop#1#2,{%
+  \def\PaperTmpB{#2}%
+  \ifx\PaperTmpB\PaperValEndMark
+    \let\PaperTmpNext\relax
+  \else
+    \ifx#1\PaperTmpB\def\PaperTmpOK{1}\fi
+    \def\PaperTmpNext{\PaperValLoop#1}%
+  \fi
+  \PaperTmpNext}
+% \PaperIfEq\Macro{word}{true}{false}
+\long\def\PaperIfEq#1#2#3#4{\def\PaperTmpA{#2}\ifx#1\PaperTmpA\def\PaperTmpNext{#3}\else\def\PaperTmpNext{#4}\fi\PaperTmpNext}
+% \PaperIfVenue{word}{true}{false}
+\long\def\PaperIfVenue#1#2#3{\PaperIfEq\PaperVenue{#1}{#2}{#3}}
+% \PaperRequireVenue{list}: each entry file names the venues it implements
+\def\PaperRequireVenue#1{\PaperValidate\PaperVenue{#1}}
+\def\PaperNote#1{\immediate\write16{[paper] #1}}
+
+% ---- defaults and validation --------------------------------------------------
+\PaperSetDefault\PaperMode{share}          \PaperValidate\PaperMode{share,submit}
+\PaperSetDefault\PaperVenue{none}          \PaperValidate\PaperVenue{none,asplos27,micro26,isca26,hpca27}
+\ifdefined\PaperSubmissionID\else\def\PaperSubmissionID{NaN}\fi      % free text: taken as given
+\PaperSetDefault\PaperAnon{auto}           \PaperValidate\PaperAnon{auto,yes,no}
+\PaperSetDefault\PaperAcks{auto}           \PaperValidate\PaperAcks{auto,yes,no}
+\PaperSetDefault\PaperAIUse{no}            \PaperValidate\PaperAIUse{yes,no}
+\PaperSetDefault\PaperAppendix{no}         \PaperValidate\PaperAppendix{yes,no}
+\PaperSetDefault\PaperRepo{auto}           \PaperValidate\PaperRepo{auto,show,anon,none}
+\PaperSetDefault\PaperNotice{auto}         \PaperValidate\PaperNotice{auto,yes,no}
+\PaperSetDefault\PaperFill{no}             \PaperValidate\PaperFill{yes,no}
+\PaperIfEq\PaperFill{yes}{\PaperSetDefault\PaperTBD{none}}{\PaperSetDefault\PaperTBD{show}}
+                                           \PaperValidate\PaperTBD{show,blank,none}
+\PaperSetDefault\PaperTBDIndex{auto}       \PaperValidate\PaperTBDIndex{auto,yes,no}
+\PaperSetDefault\PaperParTags{auto}        \PaperValidate\PaperParTags{auto,yes,no}
+\PaperSetDefault\PaperNociteAll{no}        \PaperValidate\PaperNociteAll{yes,no}
+\PaperSetDefault\PaperACMFormat{auto}      \PaperValidate\PaperACMFormat{auto,sigplan,sigconf}
+\ifdefined\PaperRepoAnonURL\else\def\PaperRepoAnonURL{}\fi            % free text: an anonymized artifact URL, if there is one
+
+% ---- derived conditionals (used by the entry files and by preamble/common.tex) --
+\newif\ifPaperSubmit    \PaperIfEq\PaperMode{submit}{\PaperSubmittrue}{\PaperSubmitfalse}
+\newif\ifPaperFill      \PaperIfEq\PaperFill{yes}{\PaperFilltrue}{\PaperFillfalse}
+\newif\ifPaperAIUse     \PaperIfEq\PaperAIUse{yes}{\PaperAIUsetrue}{\PaperAIUsefalse}
+\newif\ifPaperNociteAll \PaperIfEq\PaperNociteAll{yes}{\PaperNociteAlltrue}{\PaperNociteAllfalse}
+% a fill build hides the stubs, and with them every \cite: print the whole bibliography instead
+% (an empty reference list is an error in IEEEtran, and a full one is closer to the finished paper)
+\ifPaperFill\PaperNociteAlltrue\fi
+
+% placeholders: 0 = show, 1 = blank (same layout, invisible ink), 2 = none (removed)
+\chardef\PaperTBDmode=0
+\PaperIfEq\PaperTBD{blank}{\chardef\PaperTBDmode=1 }{}
+\PaperIfEq\PaperTBD{none}{\chardef\PaperTBDmode=2 }{}
+
+% anonymity
+\newif\ifPaperAnon
+\ifPaperSubmit\PaperAnontrue\else\PaperAnonfalse\fi
+\PaperIfEq\PaperAnon{yes}{\PaperAnontrue}{}
+\PaperIfEq\PaperAnon{no}{\PaperAnonfalse}{}
+
+% venue banner: submit mode only, and only for venues whose template has one
+\newif\ifPaperBanner \PaperBannerfalse
+\ifPaperSubmit
+  \PaperIfVenue{micro26}{\PaperBannertrue}{}%
+  \PaperIfVenue{isca26}{\PaperBannertrue}{}%
+  \PaperIfVenue{hpca27}{\PaperBannertrue}{}%
+\fi
+
+% acknowledgments: never in an anonymous build (they identify the authors)
+\newif\ifPaperAcks
+\ifPaperSubmit\PaperAcksfalse\else\PaperAckstrue\fi
+\PaperIfEq\PaperAcks{yes}{\PaperAckstrue}{}
+\PaperIfEq\PaperAcks{no}{\PaperAcksfalse}{}
+\ifPaperAnon\ifPaperAcks\PaperAcksfalse\PaperNote{acknowledgments suppressed: anonymous build}\fi\fi
+
+% appendix: MICRO 2026 allows none
+\newif\ifPaperAppendix \PaperIfEq\PaperAppendix{yes}{\PaperAppendixtrue}{\PaperAppendixfalse}
+\ifPaperSubmit\ifPaperAppendix
+  \PaperIfVenue{micro26}{\PaperAppendixfalse\PaperNote{appendix suppressed: MICRO 2026 allows no appendix}}{}%
+\fi\fi
+
+% repository link: 0 = print the public URL, 1 = print the anonymized URL, 2 = print nothing identifying
+\chardef\PaperRepoMode=0
+\ifPaperSubmit
+  \ifx\PaperRepoAnonURL\empty \chardef\PaperRepoMode=2 \else \chardef\PaperRepoMode=1 \fi
+\fi
+\PaperIfEq\PaperRepo{show}{\chardef\PaperRepoMode=0 }{}
+\PaperIfEq\PaperRepo{anon}{\chardef\PaperRepoMode=1 }{}
+\PaperIfEq\PaperRepo{none}{\chardef\PaperRepoMode=2 }{}
+\ifPaperAnon\ifnum\PaperRepoMode=0
+  \chardef\PaperRepoMode=2 \PaperNote{public repository link suppressed: anonymous build}%
+\fi\fi
+
+% "working draft" note on the first page
+\newif\ifPaperNotice
+\ifPaperSubmit\PaperNoticefalse\else\PaperNoticetrue\fi
+\PaperIfEq\PaperNotice{yes}{\PaperNoticetrue}{}
+\PaperIfEq\PaperNotice{no}{\PaperNoticefalse}{}
+\ifPaperAnon\PaperNoticefalse\fi
+
+% paragraph tags and the index of open placeholders
+\newif\ifPaperParTags
+\ifPaperSubmit\PaperParTagsfalse\else\PaperParTagstrue\fi
+\ifnum\PaperTBDmode>0 \PaperParTagsfalse\fi
+\ifPaperFill\PaperParTagsfalse\fi
+\PaperIfEq\PaperParTags{yes}{\PaperParTagstrue}{}
+\PaperIfEq\PaperParTags{no}{\PaperParTagsfalse}{}
+\newif\ifPaperTBDIndex
+\ifPaperSubmit\PaperTBDIndexfalse\else\PaperTBDIndextrue\fi
+\ifnum\PaperTBDmode>0 \PaperTBDIndexfalse\fi
+\ifPaperFill\PaperTBDIndexfalse\fi
+\PaperIfEq\PaperTBDIndex{yes}{\PaperTBDIndextrue}{}
+\PaperIfEq\PaperTBDIndex{no}{\PaperTBDIndexfalse}{}
+
+% ---- one line in the log that says what was built ------------------------------
+\PaperNote{build: mode=\PaperMode\space venue=\PaperVenue\space
+  anon=\ifPaperAnon yes\else no\fi\space banner=\ifPaperBanner yes\else no\fi\space
+  acks=\ifPaperAcks yes\else no\fi\space aiuse=\PaperAIUse\space appendix=\ifPaperAppendix yes\else no\fi\space
+  repo=\ifcase\PaperRepoMode show\or anon\or none\fi\space tbd=\PaperTBD\space
+  tbdindex=\ifPaperTBDIndex yes\else no\fi\space partags=\ifPaperParTags yes\else no\fi\space
+  fill=\PaperFill\space nociteall=\ifPaperNociteAll yes\else no\fi}
+\endinput

@@ -1,0 +1,119 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-pe-body.tex -- PE microarchitecture (target design), the figure body.  Canvas 7.0 in x 2.4 in (504.0 x 172.8 bp).
+%% Every colour, line kind, shape and size comes from scalenative-figstyle.sty; this file sets positions and box sizes.
+%% The target design is drawn, not the prototype RTL (see the figure caption).
+%% Coordinates are in bp.  Needs: \usepackage{scalenative-figstyle}.
+\begin{AFcanvas}{F}{240}
+  % Local shorthands.  Each is a composition of keys of scalenative-figstyle.sty -- no colour, dash pattern, width or
+  % size of its own:
+  %   pe open bi   a connection that the design has not fixed yet
+  %   pe err wire  a branch of the error line that joins the trunk (the trunk carries the tip)
+  %   pe port wire the short bus-level stub between a port on the PE boundary and the NoC endpoint
+  \tikzset{
+    pe open bi/.style={af data bi, dash pattern=on 1.2bp off 1.2bp, draw=AFSlotS},
+    pe err wire/.style={af err, -},
+    pe port wire/.style={af bus, -},
+  }
+  % Rows of the hand-off path (y of outlet 0 / outlet 1) and the level half-way between them
+  \def\peYa{112bp}\def\peYb{66bp}\def\peYm{89bp}
+  % Tracks of the top band (control bus below, error trunk above) and of the right-hand spine
+  \def\peYbus{157bp}\def\peYerr{165bp}
+  \def\peXl{478.5bp}\def\peXc{487.5bp}\def\peXe{496.5bp}
+  % ================= PE boundary =================
+  \AFboxoutermost[af unit]{pe}{(12bp,1.2bp)}{(503.2bp,171.6bp)}
+  \node[af frame label, anchor=north west] (pel) at (15bp,169.6bp) {PE};
+  % ================= control column =================
+  \node[af blk=Cmd, anchor=north west] (cp) at (16.5bp,153bp) {Command\\processor};
+  \node[af blk=Ibex, anchor=north east] (ibex) at (77.24bp,121.5bp) {Ibex CPU};
+  \node[af mem dark=Lone, rectangle, rounded corners=3bp, anchor=north west] (l1d) at (25.9bp,85bp) {L1D\\8 KiB};
+  \node[af mem dark=Lone, rectangle, rounded corners=3bp, anchor=north west] (l1i) at ($(l1d.north east)+(1.4bp,0)$) {L1I\\4 KiB};
+  \node[af lbl, anchor=south east] (l1l) at ($(l1i.north east)+(0,0.5bp)$) {L1};
+  \AFfit[af group=Lone, inner sep=2.2bp]{l1}{(l1d)(l1i)(l1l)}
+  \node[af blk dark=DMA, anchor=south west] (dma) at (16.5bp,38bp) {DMA};
+  \node[af blk=NoC, anchor=south west, minimum width=40bp, minimum height=22bp] (ep) at (23.4bp,4.5bp) {NoC\\endpoint};   % left edge = left edge of the L1 frame
+  \node[af port=east] (pin) at (10.44bp,20.5bp) {};
+  \node[af port=west] (pout) at (13.56bp,10.5bp) {};
+  \node[af lbl, rotate=90, anchor=west] (rate) at (5.8bp,26bp) {64 B/cycle};
+  % ================= L2 and its arbiter along the bottom =================
+  \node[af mem=Ltwo, anchor=west, minimum width=427.4bp, minimum height=11.5bp, inner ysep=0pt] (l2) at (75.5bp,10.55bp) {L2\quad 128 KiB};
+  \node[af blk=Ltwo, anchor=south west, minimum width=416.6bp, minimum height=10.5bp, inner ysep=0pt] (arb) at (78.9bp,16bp) {L2 arbiter};
+  % ================= Tensor unit =================
+  \AFboxouter[af unit tint=Tensor]{tu}{(90bp,40bp)}{(294.5bp,146bp)}
+  \node[af frame label, anchor=north west] (tul) at (93bp,144bp) {Tensor unit};
+  \node[af mem=Tensor, anchor=west] (ob) at (102bp,123.6bp) {Operand buffer};
+  \node[af lanes={Tensor}{7}, anchor=west, minimum width=54bp, minimum height=36bp] (ma) at (102bp,\peYm) {MAC array\\16\,\AFx\,16};
+  \node[af blk=Tensor, anchor=west, minimum width=54bp] (ld) at (102bp,54.4bp) {Loader};
+  \node[af mem=Tensor, af stack, anchor=west, inner ysep=2.6bp] (obk) at (166.6bp,\peYm) {Output\\banks};
+  \node[af blk=Tensor, anchor=west] (rs0) at (215.5bp,\peYa) {Row\\scan};
+  \node[af blk=Tensor, anchor=west] (bf0) at ($(rs0.east)+(9.5bp,0)$) {Block\\formation};
+  \node[af blk=Tensor, anchor=west] (rs1) at (215.5bp,\peYb) {Row\\scan};
+  \node[af blk=Tensor, anchor=west] (bf1) at ($(rs1.east)+(9.5bp,0)$) {Block\\formation};
+  \node[af port=east] (o0) at (292.94bp,\peYa) {};
+  \node[af port=east] (o1) at (292.94bp,\peYb) {};
+  % ================= fast lanes between the two unit frames =================
+  \node[af queue=4, anchor=west] (q0) at (330bp,\peYa) {};
+  \node[af queue=4, anchor=west] (q1) at (330bp,\peYb) {};
+  \node[af lbl, anchor=south west] (o0l) at (299.5bp,115.6bp) {outlet 0};
+  \node[af lbl, anchor=north west] (o1l) at (299.5bp,62.4bp) {outlet 1};
+  \node[af lbl] (fl) at (326bp,\peYm) {Fast lane};
+  % ================= Vector unit =================
+  \AFboxouter[af unit tint=Vector]{vu}{(357.5bp,40bp)}{(471.5bp,146bp)}
+  \node[af frame label, anchor=north west] (vul) at (360.5bp,144bp) {Vector unit};
+  \node[af main area, anchor=west] (ic0) at (363bp,\peYa) {Ingress check};
+  \node[af main area, anchor=west] (ic1) at (363bp,\peYb) {Ingress check};
+  \node[af lanes={Vector}{5}, anchor=west, minimum width=30bp, minimum height=24bp] (vc0) at ($(ic0.east)+(11bp,0)$) {Vector\\core 0};
+  \node[af lanes={Vector}{5}, anchor=west, minimum width=30bp, minimum height=24bp] (vc1) at ($(ic1.east)+(11bp,0)$) {Vector\\core 1};
+  % ================= hand-off path, the main line =================
+  % one stroke per outlet, laid below the port and the queue so that its underlay is not interrupted
+  \begin{pgfonlayer}{background}
+    \draw[af main] (bf0.east) -- (ic0.west);
+    \draw[af main] (bf1.east) -- (ic1.west);
+  \end{pgfonlayer}
+  \draw[af main] (ic0.east) -- (vc0.west);
+  \draw[af main] (ic1.east) -- (vc1.west);
+  % ================= data inside the Tensor unit =================
+  \draw[af data] (ld.north) -- (ld.north |- ma.south);
+  \draw[af data] (ld.west) -- (96bp,0 |- ld.west) |- (ob.west);
+  \draw[af data] (ma.north |- ob.south) -- (ma.north);
+  \draw[af data] (ma.east) -- (obk.west);
+  \draw[af data] (obk.east) -- ++(6bp,0) |- (rs0.west);
+  \draw[af data] (obk.east) -- ++(6bp,0) |- (rs1.west);
+  \draw[af data] (rs0.east) -- (bf0.west);
+  \draw[af data] (rs1.east) -- (bf1.west);
+  % ================= data lines to L2: all end on the arbiter =================
+  \draw[af data] (ld.south |- arb.north) -- (ld.south);
+  \draw[af data bi] ($(vc0.east)+(0,-6bp)$) -- (\peXl,0 |- 0,106bp) -- (\peXl,0 |- arb.north);
+  \draw[pe open bi] (vc1.south) -- (vc1.south |- arb.north);
+  \draw[af data bi] (ibex.east) -- (84.5bp,0 |- ibex.east) -- (84.5bp,0 |- arb.north);
+  \draw[af data bi] (ep.east |- arb.west) -- (arb.west);
+  % ================= control column wiring =================
+  \draw[af data] (dma.south) -- (dma.south |- ep.north);
+  \draw[pe port wire] (pin.east) -- (pin.east -| ep.west);
+  \draw[pe port wire] (pout.east) -- (pout.east -| ep.west);
+  \draw[af data bi] (ibex.south) -- (ibex.south |- l1.north);
+  \draw[af data] (32bp,0 |- l1d.north) -- (32bp,0 |- cp.south);
+  \draw[af data] (59bp,0 |- ep.north) -- (59bp,0 |- l1i.south);
+  % ================= control: one dashed bus with four landing points =================
+  \draw[af ctl] (cp.east) -- (70.5bp,0 |- cp.east) -- (70.5bp,\peYbus) -- (\peXc,\peYbus) -- (\peXc,0 |- 0,72bp) -- (vc1.east |- 0,72bp);
+  \draw[af ctl] (\peXc,118bp) -- (vc0.east |- 0,118bp);
+  \draw[af ctl] (118bp,\peYbus) -- (118bp,0 |- tu.north);
+  \draw[af ctl] (20bp,0 |- cp.south) -- (20bp,0 |- dma.north);
+  % ================= errors and rejects: one red trunk into the command processor =================
+  % every branch starts at its junction, so that the dash pattern puts a dash (never a gap) on each junction
+  \coordinate (jic) at (ic0.south |- 0,\peYm);      % rejects of the two ingress checks meet here
+  \coordinate (jvc) at (vc0.south |- 0,\peYm);      % errors of the two Vector cores join
+  \coordinate (jtu) at (262bp,\peYerr);             % error of the Tensor unit joins the trunk
+  \draw[pe err wire] (jic) -- (ic0.south);
+  \draw[pe err wire] (jic) -- (ic1.north);
+  \draw[pe err wire] (jic) -- (jvc);
+  \draw[pe err wire] (jvc) -- (vc0.south);
+  \draw[pe err wire] (jvc) -- (vc1.north);
+  \draw[pe err wire] (jvc) -- (\peXe,\peYm) -- (\peXe,\peYerr) -- (jtu);
+  \draw[pe err wire] (jtu) -- (jtu |- tu.north);
+  \draw[af err] (jtu) -- (46bp,\peYerr) -- (46bp,0 |- cp.north);
+  \node[af lbl, text=AFErrS, anchor=east] (rej) at ($(ic0.south |- 0,\peYm)+(-2bp,0)$) {reject};
+  \node[af lbl, text=AFErrS, anchor=east] (errv) at ($(vc0.south |- 0,94.4bp)+(-2bp,0)$) {error};
+  \node[af lbl, text=AFErrS, anchor=west] (errt) at (264.5bp,152bp) {error};
+\end{AFcanvas}%

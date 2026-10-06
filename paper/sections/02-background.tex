@@ -1,0 +1,90 @@
+%% ============================================================================
+%% sections/02-background.tex -- Background and Motivation
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 690 words of running text.
+%% ============================================================================
+
+\section{Background and Motivation}\label{sec:background}
+
+\subsection{Block-Scaled Formats and Three Block Axes}\label{sec:bg-formats}
+
+%% P:sec2.1-p1
+\ptag{sec2.1-p1}%
+A \blockscaled format lets $k$ elements $P_i$ share one scale $X$; element $i$ represents $X \cdot P_i$ \cite{OCP2023MXSpec}.
+We use the term for three families: block floating point (BFP), where integer mantissas share an exponent and the block size varies by design \cite{Fowers2018Brainwave,Drumond2018HBFP,DarvishRouhani2020MSFP}; OCP MX, with $k=32$ and an E8M0 scale \cite{OCP2023MXSpec,DarvishRouhani2023MXFormats}; and NVFP4, with E2M1 elements, an E4M3 scale per 16 elements and an FP32 scale per tensor \cite{NVIDIA2025NVFP4Blog}.
+
+%% P:sec2.1-p2
+\ptag{sec2.1-p2}%
+We keep three block axes apart; values are the prototype's.
+The input scale block runs along the inner-product dimension $K$: in the MAC cells' MX input mode, 32 elements share an E8M0 scale.
+The output block runs along the output dimension $N$: a row's 16 elements share one power-of-two exponent.
+The storage group is a row of the \sidecar, which stores block exponents apart from the payload, 16 per row.
+The GEMM outlet thus forms a new block representation and passes no input scale through \TBD{D7}{how the three axes read in the target design}.
+
+\subsection{Where the Hand-off Happens Today}\label{sec:bg-today}
+
+%% P:sec2.2-p1
+\ptag{sec2.2-p1}%
+We survey the designs we examined whose public material suffices to determine the \handoff format.
+On NVIDIA Blackwell, \blockscaled products accumulate in FP32 and cuBLAS quantizes at the end of the GEMM \cite{NVIDIA2026PTXISA94,nvidia_cublas_13_4}.
+MTIA~2i forwards FP32 results directly to a floating-point SIMD engine \cite{Coburn2025MTIA2}.
+Tenstorrent stores BFP; its default element-wise path unpacks to FP32 or BF16 before compute and packs on write-back \cite{tenstorrent_isa_wormhole,tenstorrent_metalium_dataflow}.
+Trainium3 and Maia~200 output scalars; block formats are rebuilt downstream \citeTBD{Trainium3; Maia 200}.
+Outside matrix multiplication, Intel AMX, PTX and CDNA~4 accept a block scale only in format-conversion instructions \cite{NVIDIA2026PTXISA94,amd2025cdna4} \citeTBD{Intel AMX}.
+
+%% P:sec2.2-p2
+\ptag{sec2.2-p2}%
+We do not claim that these designs could not keep a block representation, and we do not dismiss prior work as special-purpose; we ask under which conditions the placement of the \handoff changes cost and numerics.
+Two surveyed practices are strong baselines: the fused end-of-GEMM quantization is the production counterpart of \armSE, and direct matrix-to-vector forwarding is established practice, so \armBD differs only in the forwarded format.
+What public material does not disclose is not assumed absent.
+
+\subsection{Two Hypotheses to Test}\label{sec:bg-hypotheses}
+
+%% P:sec2.3-p1
+\ptag{sec2.3-p1}%
+We pose two hypotheses, not conclusions.
+Hypothesis~A: fusion placement, result lifetime and the point of numeric narrowing together decide whether a block-form \handoff pays off. For a local, single-consumer operation, producer-side fusion wins under some resource conditions, whereas a result that is retained, consumed repeatedly, or held for cross-block information may favor the block form in a predictable region.
+Hypothesis~B: metadata transaction granularity can decide whether keeping a block form resident helps or hurts, with the numerical representation unchanged.
+We test them separately and combine them in \secref{sec:res-payoff}, with narrowing points fixed per placement (\secref{sec:placements}).
+
+\subsection{A Workload in Motion and the Design Questions It Raises}\label{sec:bg-workload}
+
+%% P:fig2-cap
+\FigSlot{fig:workload}%
+  {Share of multiply--accumulate operations by model component against context length, for the three models}%
+  {source plot exists; to be re-laid out for one column}%
+  {Share of multiply--accumulate operations per decoded token, by model component, versus context length (\evAnalytic). V4.1-Flash at 64K and above follows its report's count.}
+
+%% P:tab1-cap
+\begin{table}[t]
+\centering\SlotName{tab:workload-gen}%
+\caption{Demands of one decode step for three models from two generations; analytical counts, not measurements. V4.1-Flash at 1M follows its report's count; cache bytes include block scales.}\label{tab:workload-gen}
+\input{tables/tab-workload-gen}
+\end{table}
+
+%% P:sec2.4-p1
+\ptag{sec2.4-p1}%
+The three models share a context limit of one million tokens.
+We derive the multiply--accumulate operations (MACs) per decoded token analytically from their public configurations and reference implementations (\secref{sec:workload-method}), and group them by model component: index scoring (an indexer's 128-dimensional inner products with cached keys, which select the top-$k$ entries), the attention core (scores and weighted sum of the attended entries under an online softmax) and the feed-forward experts.
+The mix shifts with context (\figref{fig:workload}, \tabref{tab:workload-gen}): at 8K tokens the feed-forward experts hold 51.3--55.2\% of the MACs; at 1M index scoring is the largest component, at 38.3--64.3\% (V4.1-Flash by its technical report's count, \secref{sec:workload-method}).
+
+%% P:sec2.4-p2
+\ptag{sec2.4-p2}%
+Structural quantities held across the three models: head dimension 512, index dimension 128 and an online softmax in groups of 64 entries.
+Operation shares, storage formats and scale-block sizes changed: V4.1-Flash stores its main key--value entries in 4-bit form and shrinks 8-bit blocks from 128 to 32.
+Its authors state that this format saves storage rather than speeding up matrix multiplication \cite{DeepSeekAI2026V41Flash}; the V4 authors propose replacing SwiGLU with an element-wise activation free of exponentials and divisions, so that post-GEMM processing does not stall the GEMM pipeline \citeTBD{DeepSeek-V4 paper}.
+
+%% P:sec2.4-p3
+\ptag{sec2.4-p3}%
+Six design questions follow; the target design's answers are planning points, and \secref{sec:uarch} states what the prototype has.
+(i) Which unit executes non-GEMM operations: two \VectorCore{}s per PE, their form open (\secref{sec:consumer}).
+(ii) One PE type or two: one, with capability bits for a second.
+(iii) Compute per bit-width tier: 2048, 1024 and 256 MACs per PE per cycle at 4-bit, 8-bit and BF16.
+(iv) What a \blockscaled \handoff saves: this paper's question.
+(v) Shared storage and PE port: 128--256\,MiB per $8\times8$ mesh and a local port of 64 payload bytes per cycle into each PE (\secref{sec:pe-org}).
+(vi) Fixed cost per tile, one pass of the array: 5 cycles.

@@ -1,0 +1,16 @@
+%% tables/tab-layout-runs.tex -- body of the table `tab:layout-runs'.
+%% The float, the caption and the label are in sections/06-results.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3.4pt}%
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+ & Die side & Standard & Cell area\textsuperscript{a} & SRAM & Clock constr.\textsuperscript{b} \\
+Run & (\textmu m) & cells\textsuperscript{a} & (\textmu m\textsuperscript{2}) & macros & (ps) \\
+\midrule
+PE (\figref{fig:layout}) & 1428.5 & 3,434,117 & 397,242 & 33 & 12,000 \\
+Tensor unit\textsuperscript{c} & 903.2 & 3,067,762 & 352,109 & 12 & 1,670 \\
+Vector unit\textsuperscript{c} & 330.5 & 265,898 & 28,560 & 0 & 1,670 \\
+\bottomrule
+\multicolumn{6}{@{}p{\PaperColW}@{}}{\raggedright Dies are square. \textsuperscript{a}\,Logic cells only (no fill or tap cells); area is the sum of the cells' library footprints. \textsuperscript{b}\,Clock period given to the tools as a constraint in the flow configuration; not an achieved period, and no timing result is reported here. \textsuperscript{c}\,Block-level runs of the same RTL blocks; not crops of the figure. Figure and table are reissued after each full-flow run.} \\
+\end{tabular}

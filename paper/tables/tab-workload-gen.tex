@@ -1,0 +1,22 @@
+%% tables/tab-workload-gen.tex -- body of the table `tab:workload-gen'.
+%% The float, the caption and the label are in sections/02-background.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3pt}%
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Per decoded token & V4-Pro & V4-Flash & V4.1-Flash \\
+\midrule
+Layers / hidden width & 61 / 7,168 & 43 / 4,096 & 40 / 5,120 \\
+MACs at 8K context ($10^{10}$) & 5.466 & 1.477 & 1.796 \\
+MACs at 1M context ($10^{10}$) & 15.16 & 7.017 & 2.875 \\
+Largest at 8K: feed-forward (\%) & 51.6 & 51.3 & 55.2 \\
+Largest at 1M: index scoring (\%) & 42.5 & 64.3 & 38.3 \\
+Cache bytes read at 1M (MB) & 705.3 & 479.3 & 183.3 \\
+Main key--value entry, 512 dims & \multicolumn{2}{c}{448 8-bit + 64 BF16} & 512 4-bit \\
+8-bit blocks: weights / activations & \multicolumn{2}{c}{128$\times$128 / 128} & 32$\times$32 / 32 \\
+\midrule
+\multicolumn{4}{@{}l@{}}{All three: one ReLU and weighted add per 128 index-scoring MACs;} \\
+\multicolumn{4}{@{}l@{}}{one softmax-accumulator rescale per 128 attention-core MACs.} \\
+\bottomrule
+\end{tabular}

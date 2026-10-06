@@ -1,0 +1,15 @@
+#FMT r1-manifest v1
+#GROUP r1_dense
+#RTL 96fe783
+#AICHIP_HEAD b19aa9a91c0146ad2d6400fe15ee4cc7660ece36
+#TOOL verilator=5.032 cocotb=1.9.2 python=3.10.12 xprop=0 xseed=1
+#CASES 8
+4c19a71789b88ff42792c75cea5ce4be5842a008a754a93a93780558e89e549a  gemm_core_b2b_k20_tileA.snap
+d4763a49241c49e4bb841d9c8e97b0b869156322f430ad6a0dcde8d64b64675b  gemm_core_b2b_k20_tileB.snap
+a449ecdba9eed302ee1c06d4b5727435af360d400d93a4807698d535da27e26c  gemm_core_b2b_k25_tileA.snap
+c6642c05250d7cd7df0336ffcc8417fc9e07e31e80ca485f0d3a41d4ff3882b0  gemm_core_b2b_k25_tileB.snap
+c3f19d41b9650da99f5b36b4d1887f6b9403501c305262914badeebb92dfbd24  gemm_core_k23.snap
+d288a3b5f6dac0cdb653bc77782e13231fbff48cf26a8874ff2c9a407ba9ff78  gemm_core_k24.snap
+68b2ff469b59488fbd6a47b736e1cd2313f0e7b8d5665ccb9b8745fd6765b7b9  gemm_core_k25.snap
+75a11b09fafdfe7f0fc9de4091727189f6d49186836c5176a0e3d9ecf8404283  gemm_core_k26.snap
+#END 8

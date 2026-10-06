@@ -1,0 +1,46 @@
+%% ============================================================================
+%% preamble/terms.tex -- terminology macros.
+%% Use these for every term whose wording must stay the same across the paper or
+%% may still change.  Each macro ends in \xspace: write "\TensorUnit produces".
+%% The Chinese word used in paper.zh-CN.md is given in the comment.
+%% Entries marked UNDECIDED are working choices that the first author has not confirmed.
+%% Names that are lettered on the figures (figures/) are written here as they are written there:
+%% Tensor unit, Vector unit, Vector core, L2, capsule; the block ``Fast lane'' is ``fast lane'' in running text.
+%% ============================================================================
+
+% ---- units of the PE ------------------------------------------------------------
+\newcommand{\TensorUnit}{Tensor unit\xspace}          % Tensor 单元
+\newcommand{\VectorUnit}{Vector unit\xspace}          % Vector 单元（两个 Vector 核的总称）
+\newcommand{\VectorCore}{Vector core\xspace}          % Vector 核（每个 PE 两个）
+\newcommand{\Lii}{L2\xspace}                          % L2（PE 内的本地存储）
+
+% ---- the five hand-off placements (B/S = block/scalar; D/M/E = direct/through memory/epilogue)
+\newcommand{\armBD}{\mbox{B-D}\xspace}                % 块直通
+\newcommand{\armSD}{\mbox{S-D}\xspace}                % 标量直通
+\newcommand{\armSE}{\mbox{S-E}\xspace}                % 生产端融合
+\newcommand{\armBM}{\mbox{B-M}\xspace}                % 块经存储
+\newcommand{\armSM}{\mbox{S-M}\xspace}                % 标量经存储
+
+% ---- recurring terms ------------------------------------------------------------
+\newcommand{\blockscaled}{block-scaled\xspace}        % 块缩放
+\newcommand{\handoff}{hand-off\xspace}                % 交接
+\newcommand{\failvisible}{fail-visible\xspace}        % 失败可见
+\newcommand{\capsule}{capsule\xspace}                 % capsule（交接时的数据加元数据）
+\newcommand{\sidecar}{scale sidecar\xspace}           % scale sidecar（与 payload 分开存放的块指数）
+\newcommand{\FastPath}{fast lane\xspace}              % 快通道（图上的块名是 Fast lane；宏名沿用旧名）
+
+% ---- forms of evidence (a physical result is never called "measured") --------------
+\newcommand{\evRTL}{RTL simulation\xspace}            % RTL 仿真
+\newcommand{\evModel}{cycle-level model\xspace}       % 周期模型（方法流程图上是留空的槽位 Model results：用哪套模型还没有选）
+\newcommand{\evAnalytic}{analytical derivation\xspace} % 解析推导
+\newcommand{\evSlice}{synthesis slice\xspace}         % 综合切片
+\newcommand{\evPostRoute}{post-route EDA estimate\xspace} % 布线后 EDA 估计
+
+% ---- configuration names (UNDECIDED: neutral English names for the three configurations) --
+\newcommand{\cfgAsBuilt}{\textsc{Prototype}\xspace}   % 今天的 RTL
+\newcommand{\cfgCorrected}{\textsc{Corrected}\xspace} % 修正后的 PE
+\newcommand{\cfgProjected}{\textsc{Projected}\xspace} % 投影的系统
+
+% "heterogeneous" is reserved for a mesh that mixes two PE types; a PE with a Tensor unit
+% and Vector cores is not called heterogeneous.
+\endinput

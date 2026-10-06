@@ -1,0 +1,112 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-vector-body.tex -- Vector unit (target design), the figure body.  Canvas 7.0 in x 2.4 in (504.0 x 172.8 bp).
+%% Every colour, line kind, shape and size comes from scalenative-figstyle.sty; this file sets positions and box sizes.
+%% The target design is drawn, not the prototype RTL (see the figure caption).
+%% Coordinates are in bp.  Needs: \usepackage{scalenative-figstyle}.
+\begin{AFcanvas}{F}{240}
+  % Local shorthands.  Each is a composition of keys of scalenative-figstyle.sty -- no colour, dash pattern, width or
+  % size of its own:
+  %   vec open      a connection that the design has not fixed yet
+  %   vec err wire  a branch of the error line that joins the trunk (the trunk carries the tip)
+  %   vec row       one row of the block-level column: every label is set in a box of the same height and depth
+  %                  (the capital height of the 8 bp face, and room for a descender), so that the four rows have
+  %                  the same box height and `Reduce' and `exp' sit on one baseline although `exp' has no ascender
+  \tikzset{
+    vec open/.style={af data, dash pattern=on 1.2bp off 1.2bp, draw=AFSlotS},
+    vec open bi/.style={af data bi, dash pattern=on 1.2bp off 1.2bp, draw=AFSlotS},
+    vec err wire/.style={af err, -},
+    vec row/.style={inner ysep=1.5bp, minimum height=11bp, text height=5.83bp, text depth=1.2bp},
+  }
+  % ================= frames =================
+  \AFboxoutermost[af unit tint=Vector]{vu}{(88.1bp,1.2bp)}{(477.6bp,171.6bp)}
+  \node[af frame label, anchor=north east] (vul) at (475bp,170.2bp) {Vector unit};
+  \AFboxouter[af group=Vector, fill=AFpaper]{c0}{(99.1bp,63bp)}{(473.2bp,157bp)}
+  \AFboxouter[af group=Vector, fill=AFpaper]{c1}{(99.1bp,14bp)}{(336bp,52bp)}
+  % ================= Vector core 0, drawn in full =================
+  \node[af frame label, anchor=west] (c0l) at (101.6bp,145.2bp) {Vector core 0};
+  \node[af fn ctl, anchor=west] (dec) at ($(c0l.east)+(12bp,0)$) {Decode};
+  % entry row: ingress check ahead of the operand queue, then the scale adapter
+  \node[af main area, anchor=west] (ic0) at (102.6bp,112bp) {Ingress check};
+  \node[af queue=4, anchor=west] (oq) at ($(ic0.east)+(9bp,0)$) {};
+  \node[af lbl, anchor=north] (oql) at ($(oq.south)+(0,-4.5bp)$) {Operand queue};
+  \node[af fn cmp=Vector, anchor=west] (sa) at ($(oq.east)+(9bp,0)$) {Scale adapter};
+  % lanes: one lane opened on the data line (multiply, add), the rest folded
+  \node[af lanes h={Vector}{3}, anchor=west, minimum width=45bp, minimum height=60.4bp] (ln) at ($(sa.east)+(7bp,0)$) {};
+  \node[af mul] (mul) at ($(ln.center)+(-9.5bp,0)$) {};
+  \node[af add] (add) at ($(ln.center)+(9.5bp,0)$) {};
+  \node[af lbl] (lnl) at ($(ln.center)+(0,20bp)$) {Lanes};
+  \node[af lbl] (lnw) at ($(ln.center)+(0,-20bp)$) {\AFtimes{\AFvar{W}}};
+  \draw[af wire] (ln.west) -- (mul.west);
+  \draw[af data] (mul.east) -- (add.west);
+  \draw[af wire] (add.east) -- (ln.east);
+  % block-level units inside an unnamed thin frame
+  \node[af fn cmp=Vector, vec row, anchor=north west, minimum width=54.4bp] (red) at ($(ln.east)+(11.8bp,27.7bp)$) {Reduce};
+  \node[af fn cmp=Vector, vec row, anchor=west, minimum width=22bp] (exp) at ($(red.east)+(3bp,0)$) {exp};
+  \node[af fn cmp=Vector, vec row, anchor=north west, minimum width=80bp] (tk) at ($(red.south west)+(0,-3bp)$) {Top-k filter};
+  \node[af fn cmp=Vector, vec row, anchor=north west, minimum width=80bp] (rq) at ($(tk.south west)+(0,-3bp)$) {Renorm + quantize};
+  \node[af slot, vec row, anchor=north west, minimum width=80bp] (oa) at ($(rq.south west)+(0,-3bp)$) {Output accumulators};
+  \AFfit[af group=Vector, inner sep=2.5bp]{blk}{(red)(exp)(tk)(rq)(oa)}
+  % write-back of the payload with its scale sidecar; compact store directly below it
+  \path let \p1=(blk.north), \p2=(blk.south) in node[af fn ctl, anchor=north west, minimum width=57bp, minimum height=\y1-\y2-15.6bp] (wb) at ($(blk.north east)+(10bp,0)$) {Write-back\\payload +\\scale sidecar};
+  \node[af fn cmp=Vector, anchor=north west, minimum width=57bp, minimum height=15bp] (cs) at ($(wb.south west)+(0,0.6bp)$) {Compact store};
+  % resident operands: a bar along the bottom of the core, from the L2 side to below the ingress check
+  % the bar reaches the ingress check: a resident operand is checked and queued like a fast-lane operand,
+  % as in the prototype RTL (rtl/Vector/vector_unit.sv: resident capsule -> ingress arbiter -> operand queue)
+  \path let \p1=(ic0.west), \p2=(wb.east) in node[af fn ctl, anchor=south west, minimum width=\x2-\x1-0.6bp] (rr) at (\x1,65.8bp) {Resident read};
+  % ================= Vector core 1, folded =================
+  \node[af frame label, anchor=north west] (c1l) at (101.6bp,50.6bp) {Vector core 1};
+  \node[af main area, anchor=west] (ic1) at (102.6bp,25bp) {Ingress check};
+  \node[af lanes h={Vector}{3}, anchor=west, minimum width=50bp, minimum height=14.6bp] (ln1) at ($(ic1.east)+(9bp,0)$) {Lanes};
+  \node[af slot, anchor=west, minimum width=90bp, minimum height=14.6bp] (tbd) at ($(ln1.east)+(8bp,0)$) {to be defined};
+  % ================= left of the unit: command processor, Tensor outlets, fast lanes =================
+  \node[af blk=Cmd, anchor=north west] (cp) at (3.5bp,169.2bp) {Command\\processor};
+  \node[af port=east] (o0) at (10bp,112bp) {};
+  \node[af lbl, anchor=south west] (o0l) at (3.5bp,116.6bp) {outlet 0};
+  \node[af queue=4, anchor=west] (q0) at (33.5bp,112bp) {};
+  \node[af lbl, anchor=north] (fll) at ($(q0.south)+(0,-3bp)$) {Fast lane};
+  \node[af port=east] (o1) at (10bp,25bp) {};
+  \node[af lbl, anchor=south west] (o1l) at (3.5bp,29.6bp) {outlet 1};
+  \node[af queue=4, anchor=west] (q1) at (33.5bp,25bp) {};
+  % ================= L2, to the right of the unit =================
+  \node[af mem=Ltwo, rotate=90, minimum width=145bp, minimum height=14bp, inner sep=1bp] (l2) at (493.3bp,85.5bp) {L2};
+  \coordinate (l2w) at (l2.north);     % the side of the bar that faces the unit
+  % ================= error and reject lines: one red trunk to the command processor =================
+  % drawn before the main lines, so that the main line passes over the trunk where the two cross
+  \draw[af err] ($(ic1.north west)+(8bp,0)$) -- ++(0,4.6bp) -| (93.6bp,154bp) -- (cp.east |- 0,154bp);
+  \draw[vec err wire] (93.6bp,124.4bp) -| ($(ic0.north west)+(8bp,0)$);
+  \node[af lbl, text=AFErrS, anchor=south west] (rej) at ($(ic0.north west)+(9.6bp,1.2bp)$) {reject};
+  \draw[vec err wire] (110.6bp,52bp) -- (110.6bp,63bp);
+  \draw[vec err wire] (93.6bp,57.5bp) -- (110.6bp,57.5bp);
+  \node[af lbl, text=AFErrS, anchor=west] (errl) at (112.6bp,57.5bp) {error};
+  % ================= main line: outlet -> fast lane -> ingress check =================
+  \draw[af main wire] (o0.east) -- (q0.west);
+  \draw[af main] (q0.east) -- (ic0.west) node[pos=.33, af lbl, above=3.4bp] (cap) {capsule};
+  \draw[af main] (ic0.east) -- (oq.west);
+  \draw[af main wire] (o1.east) -- (q1.west);
+  \draw[af main] (q1.east) -- (ic1.west);
+  \draw[af main] (ic1.east) -- (ln1.west);
+  % ================= control =================
+  \draw[af ctl] (cp.east |- 0,163.6bp) -| (dec.north);
+  % ================= data =================
+  \draw[af data] (oq.east) -- (sa.west);
+  \draw[af data] (sa.east) -- (ln.west);
+  \draw[af data] (ln.east) -- (ln.east -| blk.west);
+  \draw[af data] (rq.east) -- (rq.east -| wb.west);
+  \draw[af data] (wb.east) -- (wb.east -| l2w);
+  \draw[af data] (cs.east) -- (cs.east -| l2w);
+  \draw[af data] (l2w |- rr.east) -- (rr.east);
+  \draw[af data] (ic0.south |- rr.north) -- (ic0.south);   % resident operands enter through the ingress check
+  % ================= connections the design has not fixed yet =================
+  % per-row results (maximum, sum, exp) return to the lanes as coefficients; where they enter is not designed
+  \draw[vec open] (red.north |- blk.north) -- ++(0,8bp) -| (ln.north);
+  % the index table of the top-k filter leaves the core through an exit that is not designed
+  \draw[vec open] (tk.east) -- ($(blk.east |- tk.east)+(5bp,0)$) -- ($(blk.east |- c0.north)+(5bp,0)$);
+  % whether the second core is connected to L2 is open
+  \draw[vec open bi] (c1.east |- 0,46.5bp) -- (l2w |- 0,46.5bp);
+  % ================= single-Vector PE: what is left out =================
+  % left arm clear of the canvas edge; right arm up beside the note, so that the note hangs on the bracket
+  \draw[af leader, line width=\AFlw] (3.8bp,17bp) |- (340.5bp,8bp) -- (340.5bp,40bp);
+  \node[af note, anchor=west] (omit) at (344bp,25bp) {omitted in single-Vector PE};
+\end{AFcanvas}%

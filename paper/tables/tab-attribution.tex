@@ -1,0 +1,17 @@
+%% tables/tab-attribution.tex -- body of the table `tab:attribution'.
+%% The float, the caption and the label are in sections/03-design-space.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3pt}%
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.66in}>{\raggedright\arraybackslash}p{2.05in}@{}}
+\toprule
+Pair & Isolates & Condition to establish \\
+\midrule
+\armBD/\armSD & representation & equal resources, numeric contract, capacity \\
+\armBM/\armSM & representation & round trip, same protection, true encoding \\
+\armBD/\armBM & storage & both complete the same workload \\
+\armSD/\armSM & storage & BF16 and FP32 as separate groups \\
+\armSD/\armSE & fusion placement & equal accumulation precision, rounding points, consumer precision, final quantization \\
+\armBD/\armSE & whole designs & isolates neither conversion nor fusion \\
+\bottomrule
+\end{tabular}

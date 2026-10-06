@@ -1,0 +1,133 @@
+%% ============================================================================
+%% sections/06-results.tex -- Results
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 920 words of running text.
+%% ============================================================================
+
+\section{Results}\label{sec:results}
+
+%% P:sec6-p0
+\ptag{sec6-p0}%
+Only \secref{sec:res-workload} and \secref{sec:res-impl} carry results today; the other subsections state the experiment, its figure (\figref{fig:payoff} for the main comparison) and how it will be read.
+
+%% P:fig9-cap
+\FigSlot{fig:payoff}%
+  {When it pays off. One panel per consumer tier and operating regime; in each, the placements against $K$ at the three scopes; \evRTL and model results side by side on a shared scale; regimes in which the block form does not pay off are marked}%
+  {placeholder until the experiment is run}%
+  {Where keeping the block form pays off and where it does not: placements by consumer tier, operating regime and $K$ at the three scopes of \secref{sec:metrics}; \evRTL and model results in separate panels on one scale.}
+
+\subsection{Workload Characterization}\label{sec:res-workload}
+
+%% P:sec6.1-p1
+\ptag{sec6.1-p1}%
+By \evAnalytic, the operation mix of one decode step inverts as context grows (\figref{fig:workload}, \tabref{tab:workload-gen}): at 8K feed-forward experts hold over half of the MACs and index scoring 0.9--2.4\%; at 1M index scoring is the largest component.
+Only index scoring and, in V4-Pro and V4-Flash, the attention core of the layers that keep one entry per 128 tokens grow with $L$, so MACs per token rise 2.77$\times$, 4.75$\times$ and 1.60$\times$ from 8K to 1M (V4-Pro, V4-Flash, V4.1-Flash).
+
+%% P:sec6.1-p2
+\ptag{sec6.1-p2}%
+At long context the most frequent non-GEMM operations follow index scoring and the attention core, one per 128 MACs of either in every model (\tabref{tab:workload-gen}).
+Only index scoring multiplies two 4-bit operands (\tabref{tab:mac-share}).
+In the reference implementations, scales sit at matrix inputs and in caches while matrix outputs are scalar, so 1.39--3.31 million elements per token are dynamically quantized to 8 bits.
+How many of these a \blockscaled \handoff removes, and which workload operations the consumer tiers of \secref{sec:tiers} stand for, is open \TBD{E4}{quantization steps removed; mapping of workload operations to consumer tiers}.
+
+\subsection{Correctness, Fail-Visibility and Numerics}\label{sec:res-correct}
+
+%% P:fig10-cap
+\FigSlot{fig:correct}%
+  {Three checks in one compact panel: (a) whole-PE arithmetic closure against the reference model; (b) terminal state reached by each class of injected mismatch; (c) numerical error of each placement on synthetic tensors}%
+  {placeholder until the experiments are run}%
+  {Correctness (a), \failvisible behavior (b) and numerics (c): the three checks of \secref{sec:res-correct}.}
+
+%% P:sec6.2-p1
+\ptag{sec6.2-p1}%
+Three checks precede any cost comparison (\figref{fig:correct}).
+(a) Whole-PE arithmetic closure: rows that a complete chain writes to \Lii are read back and compared with the bit-accurate reference; we state whether output block exponents are covered \TBD{E1}{whole-PE arithmetic closure, RTL simulation}.
+(b) Fail-visibility: every reachable class of mismatch, such as a tampered scale epoch or a result overwritten before consumption, must end in an error state with its credit settled exactly once \TBD{E2}{fault-injection outcomes, RTL simulation}.
+(c) Numerics: we report the error of each placement against a reference-precision result on the synthetic tensors of \secref{sec:numerics} \TBD{E3}{numerical quality on synthetic inputs; definition of the escape metric}.
+\ProtoStatus{the GEMM-to-residual-add chain is verified in segments and, as a whole PE, only for completion.}
+
+\subsection{When Does It Pay Off}\label{sec:res-payoff}
+
+%% P:sec6.3-p1
+\ptag{sec6.3-p1}%
+The main experiment compares the five placements of \tabref{tab:placements} across the consumer tiers of \secref{sec:tiers}, both operating regimes and $K$ (\figref{fig:payoff}).
+\armSE appears as an optimistic bound and a calibrated estimate \TBD{E4}{result of the placement sweep, RTL simulation}.
+
+%% P:sec6.3-p2
+\ptag{sec6.3-p2}%
+The sweep is read against hypothesis~A (\secref{sec:bg-hypotheses}), at each of the three scopes.
+A boundary, if one exists, is stated in three quantities: whether fusion is feasible, how long the result lives, and the granularity of metadata transactions (\secref{sec:res-metadata}).
+Regimes in which the block form does not pay off are marked in \figref{fig:payoff}, and the absence of a crossover is reported as such.
+\ProtoStatus{no placement has been compared; until the 128\,KiB \Lii is in RTL, the primary comparison of \secref{sec:placements} rests on a model.}
+
+\subsection{Metadata Transactions and Storage Cost}\label{sec:res-metadata}
+
+%% P:fig11-cap
+\FigSlot{fig:metadata}%
+  {Metadata transactions (hypothesis B): the six cost items for \armBM and \armSM, per metadata layout, against the number of blocks merged per sidecar access; a crossover is marked only if one exists}%
+  {placeholder until the experiment is run}%
+  {Metadata transaction account for hypothesis~B: cost per element of \armBM and \armSM against the number of blocks merged per \sidecar access, per metadata layout. A crossover is marked only if one exists.}
+
+%% P:sec6.4-p1
+\ptag{sec6.4-p1}%
+Hypothesis~B is tested with a transaction account computed analytically before any mechanism is built (\figref{fig:metadata}).
+For each \sidecar layout we count the six cost items of \secref{sec:metadata} for \armBM and \armSM.
+We report the storage that scale metadata occupies and whether a crossover exists.
+A bounded merge of the updates to one \sidecar row is claimed as a mechanism only if it moves the crossover where the write-combining baseline cannot \TBD{E5}{metadata transaction account}.
+
+\subsection{The Cost of a Fail-Visible Hand-off}\label{sec:res-failvis}
+
+%% P:fig12-cap
+\FigSlot{fig:failvis-cost}%
+  {Cost of a fail-visible hand-off as an additive breakdown: the bare direct block hand-off, then the consumer-side check, error aggregation, commit with metadata, and the second hop}%
+  {placeholder until the experiment is run}%
+  {Cost of a \failvisible \handoff, added step by step to the bare \armBD path.}
+
+%% P:sec6.5-p1
+\ptag{sec6.5-p1}%
+The cost of fail-visibility is reported as increments over the bare \armBD \handoff (\figref{fig:failvis-cost}).
+We add, in order, the check at the consumer's ingress, aggregation of run-time errors at the command processor, commit of a payload with its scale metadata, and the second hop, where a stored result is read back and consumed.
+Each increment is charged its implementation cost, a \evPostRoute \TBD{E8}{additive cost breakdown}.
+Checking at dispatch and checking in the datapath are compared conditionally: both variants share the object table, leases and publication rule and differ only in where and how often the check runs.
+
+\subsection{Implementation}\label{sec:res-impl}
+
+%% P:fig13-cap
+\FigSlot{fig:layout}%
+  {Layout image of the whole die, which is square. Standard cells appear as grey clusters on a dark background and cover most of the die; 33 SRAM macros appear as hatched red rectangles in four rows left of the center. Black frames with names mark the macros of the Operand buffer, of L2 and of L1 and, in the lower left corner, most of the cells of the Command processor, the Vector unit and the Ibex CPU; the large remaining area is named Tensor unit}%
+  {drawn from the routed design data; file figures/fig-layout.pdf}%
+  {Post-route layout of one PE (ASAP7 predictive PDK; an EDA result, not silicon; intermediate version), drawn from the routed design data. Frames mark SRAM macros (L1, L2, Operand buffer) or most of a block's cells; the rest is the Tensor unit. The RTL of this run predates the Vector sum-of-squares fix and has one Vector core and a 32~KiB L2; run data are in \tabref{tab:layout-runs}.}
+
+%% P:tab6-cap
+\begin{table}[t]
+\centering\SlotName{tab:layout-runs}%
+\caption{Place-and-route runs: the PE of \figref{fig:layout}, and its two units run on their own (ASAP7, post-route; intermediate versions).}\label{tab:layout-runs}
+\input{tables/tab-layout-runs}
+\end{table}
+
+%% P:sec6.6-p1
+\ptag{sec6.6-p1}%
+\figref{fig:layout} shows the largest design that has a complete post-route layout today, the whole PE on ASAP7; \tabref{tab:layout-runs} adds block-level runs of its two units.
+In the image, grey marks where standard cells sit, not how densely; the design is placed flat, so the frames are annotations, and the DMA engine and the fast-lane FIFO are too small to frame.
+The three runs use the same RTL, which precedes a numerical fix to the sum-of-squares unit, and differ in clock constraint and flow recipe.
+None of the three runs closes timing; the routing violations that remain in the whole-PE run are listed with the released sources.
+Per-component area and timing for \cfgCorrected and the target design are pending \TBD{E8}{per-component breakdown}.
+
+\subsection{System-Level Projection}\label{sec:res-system}
+
+%% P:fig14-cap
+\FigSlot{fig:system-proj}%
+  {System-level projection: whether a hand-off benefit found on one PE persists once transfer, publication to other PEs and workload mapping are added}%
+  {placeholder; the source of performance data is not fixed}%
+  {System-level projection. Every point is a model result, not \evRTL; the model is not yet fixed.}
+
+%% P:sec6.7-p1
+\ptag{sec6.7-p1}%
+The last question is whether a benefit found on one PE persists once transfer between PEs, publication to other PEs and workload mapping are added (\figref{fig:system-proj}).
+\cfgProjected answers it with a model (\secref{sec:pe-org}); no throughput, latency or bottleneck is given \TBD{P}{source of performance data} \TBD{E10}{system-level projection}.
+If the model cannot close a transaction chain across PEs, the result becomes a bounded sensitivity analysis.

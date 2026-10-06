@@ -1,0 +1,87 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-tensor-body.tex -- Tensor unit (target design), the figure body.  Canvas 7.0 in x 1.9 in (504 x 136.8 bp).
+%% Every colour, line kind, shape and size comes from scalenative-figstyle.sty; this file sets positions and box sizes.
+%% The target design is drawn, not the prototype RTL; nothing on the figure marks implementation status
+%% (see the figure caption).  Output banks sits below the last array column, so that its outgoing line does
+%% not cross the leaders to panel (b).
+%% Coordinates are in bp.  Needs: \usepackage{scalenative-figstyle}.
+\begin{AFcanvas}{F}{190}
+  % ================= unit frame =================
+  \AFboxouter[af unit tint=Tensor]{tu}{(17bp,1.2bp)}{(467.5bp,135.6bp)}
+  \node[af frame label, anchor=north west] (tul) at (20.5bp,133.5bp) {Tensor unit};
+
+  % ================= (a) Array organization =================
+  \node[af mem=Ltwo, rotate=90, minimum width=30bp, minimum height=11.6bp, inner sep=1bp] (l2) at (8.1bp,106bp) {L2}; % a piece of the L2 bar, upright, as in the Vector unit figure
+  \node[af fn ctl, anchor=west] (ld) at (23bp,106bp) {Loader};
+  \node[af fn ctl, anchor=west] (tc) at (23bp,66bp) {Tile controller};
+  \node[af fn sto] (ob) at (140bp,126bp) {Operand buffer};
+  % MAC array: 3 x 3 cells drawn; the gap with the dots stands for the columns that are not drawn
+  \foreach \i/\x in {0/126,1/140,2/166}{\foreach \j/\y in {0/66,1/80,2/94}{
+    \node[af blk=Tensor, minimum size=12bp, inner sep=0pt] (c\i\j) at (\x bp,\y bp) {};}}
+  \node[af blk=Tensor, minimum size=12bp, inner sep=0pt, line width=\AFlwframe] (cz) at (166bp,94bp) {}; % the cell shown in (b)
+  \node[af lbl] (dots) at (153bp,80bp) {\dots};
+  \node[af lbl, anchor=east] (ma) at (141.5bp,50.5bp) {MAC array\enspace 16\,\AFx\,16};
+  \node[af lbl, anchor=east] (rate) at (141.5bp,41bp) {2048 / 1024 / 256 MAC per cycle};
+  \node[af fn sto, af stack] (obk) at (166bp,35bp) {Output\\banks};
+  \draw[af data] (l2.south) -- (ld.west);                                                    % the node is turned: its south side faces the unit
+  \draw[af data] (ld.east) -- ++(26bp,0) |- (ob.west);
+  \draw[af data] (ob.south) -- (c12.north) node[pos=.45, af lbl, left=1bp] (wts) {weights};
+  \draw[af data] (ld.south) |- (c01.west) node[pos=.75, af lbl, above=1.2bp] (act) {activations};
+  \draw[af ctl] (tc.east) -- (c00.west);                                                     % control: to one cell at the edge only
+  \draw[af data] (c20.south) -- (obk.north);
+  \node[af panel, anchor=south] (ta) at (101.5bp,4.5bp) {(a)\enspace Array organization};
+
+  % ================= (b) One MAC cell: block names only =================
+  \AFbox[af group=Tensor]{cell}{(207bp,25.5bp)}{(289bp,131.5bp)}
+  \node[af fn cmp=Tensor, minimum width=70bp, anchor=north] (iu) at (248bp,128bp) {Input unpack\\4-bit / 8-bit / BF16};
+  \node[af fn cmp=Tensor, minimum width=70bp, below=6.5bp of iu] (mu) {Multipliers\\4-bit \AFx{} 4-bit};
+  \node[af fn cmp=Tensor, minimum width=70bp, below=6.5bp of mu] (lr) {Local reduce};
+  \node[af fn cmp=Tensor, minimum width=70bp, below=6.5bp of lr] (sc) {Scale correction};
+  \node[af fn cmp=Tensor, minimum width=70bp, below=6.5bp of sc] (wa) {Wide accumulator};
+  \draw[af data] (iu) -- (mu); \draw[af data] (mu) -- (lr); \draw[af data] (lr) -- (sc); \draw[af data] (sc) -- (wa);
+  \node[af port=west, anchor=west] (pp) at (wa.east -| cell.east) {};
+  \draw[af data] (pp.west) -- (wa.east);
+  \node[af lbl, rotate=90, anchor=west] (pre) at ($(pp.north)+(2.2bp,2bp)$) {preload};
+  \draw[af leader] (cz.north east) -- ($(cell.north west)+(0.59bp,-0.59bp)$);                    % leader (ends on the rounded corner)
+  \draw[af leader] (cz.south east) -- ($(cell.south west)+(0.59bp,0.59bp)$);
+  \node[af panel, anchor=south] (tb) at (248bp,4.5bp) {(b)\enspace One MAC cell};
+
+  % ================= (c) Block formation at the outlets: one scan path per outlet =================
+  % --- path 0, expanded ---
+  \AFbox[af group=Tensor]{bf0}{(366bp,74.5bp)}{(430bp,131.5bp)}                              % frame of Block formation, path 0
+  \node[af lbl, anchor=north] (bf0l) at ($(bf0.north)+(0,-1.5bp)$) {Block formation};
+  \node[af fn cmp=Tensor] (me) at (398bp,113bp) {Max exponent};
+  \node[af fn cmp=Tensor, af stack] (qz) at (396.5bp,90.5bp) {Quantizer\\\AFtimes{16}};
+  \node[af fn ctl, anchor=west] (rs0) at (318bp,113bp) {Row scan};
+  \node[af port=east] (o0) at (467.5bp,90.5bp) {};
+  \node[af lbl, anchor=west] (o0l) at (474.4bp,90.5bp) {outlet 0};
+  \node[af port=east] (pe) at (467.5bp,124bp) {};
+  \node[af lbl, anchor=west, text=AFErrS] (pel) at (474.4bp,124bp) {error};
+  \draw[af data] (rs0.east) -- (me.west);
+  \draw[af data] (me.south) -- (me.south |- qz.north);
+  \begin{pgfonlayer}{background}% under the stacked sheets: the line comes out from behind the stack instead of running across it
+    \draw[af main] (qz.east) -- (o0.west) node[pos=.62, af lbl, above=2.5bp] (cap) {capsule};
+  \end{pgfonlayer}
+  \draw[af err] (bf0.east |- pe.west) -- (pe.west);
+  \node[af mux=90, minimum height=9bp, anchor=west] (eh) at (384bp,58bp) {};
+  \node[af lbl, anchor=west] (ehl) at ($(eh.east)+(2bp,0)$) {Escape handling};
+  \draw[af data] ($(bf0.south west)+(8bp,0)$) |- (eh.west);
+  % --- path 1, folded ---
+  \node[af fn ctl, anchor=west] (rs1) at (318bp,35bp) {Row scan};
+  \node[af fn cmp=Tensor, minimum width=64bp, anchor=west] (bf1) at (365.7bp,35bp) {Block formation}; % Block formation, folded
+  \node[af port=east] (o1) at (467.5bp,35bp) {};
+  \node[af lbl, anchor=west] (o1l) at (474.4bp,35bp) {outlet 1};
+  \draw[af data] (rs1) -- (bf1);
+  \begin{pgfonlayer}{background}% same layer as the main line to outlet 0, so that both meet their port alike
+    \draw[af main] (bf1.east) -- (o1.west);
+  \end{pgfonlayer}
+  % --- Output banks -> the two row scans, one line below panel (b) ---
+  \begin{pgfonlayer}{background}% on the same layer as the two main lines
+    \draw[af wire] (obk.south) |- (310bp,19bp) -- (310bp,35bp);
+  \end{pgfonlayer}
+  \draw[af data] (310bp,35bp) -- (rs1.west);
+  \draw[af data] (310bp,35bp) |- (rs0.west);
+  \node[af panel, anchor=south] (tcn) at (389bp,4.5bp) {(c)\enspace Block formation at the outlets};
+\end{AFcanvas}%

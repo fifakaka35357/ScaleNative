@@ -1,0 +1,21 @@
+%% tables/tab-placements.tex -- body of the table `tab:placements'.
+%% The float, the caption and the label are in sections/03-design-space.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3.5pt}\setlength{\defaultaddspace}{3pt}%
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{1.30in}>{\raggedright\arraybackslash}p{0.80in}>{\raggedright\arraybackslash}p{1.92in}>{\raggedright\arraybackslash}p{1.36in}>{\raggedright\arraybackslash}p{0.92in}@{}}
+\toprule
+ & Representation & Through storage & Numeric order; N1, N2: narrowing points & Consumer and resources & Evidence \\
+\midrule
+\armBD & one block per row: 16 mantissas of 16 bits, shared power-of-two exponent & no: FIFO, then ingress check & acc.\ $\rightarrow$ N1: block formed, 48 to 16 bits, row's largest exponent $\rightarrow$ block-domain residual add $\rightarrow$ N2 $\rightarrow$ write & 16 lanes of 16-bit mantissas, one exponent per block \TBD{D1}{one core or both} & \evRTL \\
+\addlinespace
+\armSD & scalar BF16 or FP32, as separate groups & no & acc.\ $\rightarrow$ N1: outlet converts to BF16 or FP32 $\rightarrow$ scalar residual add $\rightarrow$ write & scalar lanes; converters replace block formation & \evRTL \\
+\addlinespace
+\armSE & FP32 in the producer; output formed after the epilogue & no; residual read from \Lii & acc.\ $\rightarrow$ FP32 residual add in the epilogue $\rightarrow$ N1: output formed & FP32 epilogue; may buffer 16 values or replay & \evSlice, \evModel \\
+\addlinespace
+\armBM & block: payload plus \sidecar & yes: write, read back, consume & as \armBD up to the write; stored without narrowing; block-domain consumption & as \armBD; \sidecar update is a read-modify-write & \evRTL \\
+\addlinespace
+\armSM & true BF16 or FP32 encoding & yes & acc.\ $\rightarrow$ N1: to BF16 or FP32 $\rightarrow$ write $\rightarrow$ read back $\rightarrow$ scalar consumption & as \armSD; encoder at write, decoder at read & open \TBD{E4}{RTL or model} \\
+\bottomrule
+\multicolumn{6}{@{}p{\PaperFullW}@{}}{acc.: accumulation over the full $K$. Target design with the prototype's block size and bit widths (\secref{sec:bg-formats}); only \armBD is in the prototype (\secref{sec:one-rtl}).} \\
+\end{tabular}

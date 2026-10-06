@@ -1,0 +1,18 @@
+%% tables/tab-mac-share.tex -- body of the table `tab:mac-share'.
+%% The float, the caption and the label are in sections/05-methodology.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{2.5pt}%
+\begin{tabular}{@{}lr@{\,/\,}lr@{\,/\,}lr@{\,/\,}l@{}}
+\toprule
+Operands; share at 8K / 1M (\%) & \multicolumn{2}{c}{V4-Pro} & \multicolumn{2}{c}{V4-Flash} & \multicolumn{2}{c@{}}{V4.1-Flash} \\
+\midrule
+4 $\times$ 4 bit (index scoring) & 0.9 & 42.5 & 2.4 & 64.3 & 1.2 & 38.3 \\
+4 $\times$ 8 bit (routed experts)\textsuperscript{a} & 44.2 & 15.9 & 44.0 & 9.3 & 47.3 & 29.5 \\
+8 $\times$ 8 bit (projections, shared expert) & 34.0 & 12.3 & 29.9 & 6.3 & 30.6 & 19.1 \\
+BF16 $\times$ cache (attention core) & 9.7 & 25.3 & 7.8 & 16.8 & 9.0 & 5.6 \\
+BF16 $\times$ BF16 (output projection)\textsuperscript{b} & 7.5 & 2.7 & 9.8 & 2.1 & 7.5 & 4.7 \\
+FP32 (remaining matrices) & 3.6 & 1.3 & 6.2 & 1.3 & 4.4 & 2.8 \\
+\bottomrule
+\multicolumn{7}{@{}l@{}}{\textsuperscript{a}\,4-bit weights. \textsuperscript{b}\,Stored 8-bit. V4.1-Flash at 1M: its report's count.} \\
+\end{tabular}

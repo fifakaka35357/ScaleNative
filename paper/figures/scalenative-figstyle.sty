@@ -1,0 +1,295 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%% ============================================================================
+%% scalenative-figstyle.sty -- one shared style file for the five architecture figures
+%%   (system, PE, Tensor unit, Vector unit, evaluation flow).
+%%   "AF" in the macro, colour and style names stands for "architecture figure".
+%%
+%% What is in here (and nowhere else):
+%%   1. fonts and the three size tiers (none below 8 bp = 8 PostScript points)
+%%   2. the colour table: module colours, function-class colours, main-line accent, error red
+%%   3. line styles: data / control / main line / error / bus / leader
+%%   4. block shapes: register, storage, compute, operator, selector, queue, port, lanes, stack,
+%%      unit frame, group frame, open slot, model region
+%%   5. canvas macros for the two drawing widths (3.33 in and 7.0 in), canvas unit = 0.01 in
+%%
+%% Works in three settings without change:
+%%   (a) a standalone wrapper (\documentclass{standalone}) -> one PDF per figure   [the normal route]
+%%   (b) \input of the figure body inside an acmart document
+%%   (c) \input of the figure body inside an IEEEtran document
+%% The figure font is selected explicitly (T1 / TeX Gyre Heros), so the lettering has the same
+%% metrics in all three; the host document's own fonts and default encoding are left untouched.
+%%
+%% Conventions that the figures follow:
+%%   - \AFnarrow is for parameter lines only, never for a block name.
+%%   - A main-line block (`af main area') keeps the main-line colour: it is not coloured by function
+%%     class or by module.  `af main ring=<family>' is the alternative (function / module fill, thick
+%%     edge, yellow halo).
+%%   - Red is used for error and reject paths only.
+%%   - Frames with a fill go on layers below the blocks: \AFfit, \AFfitouter, \AFfitoutermost.
+%% ============================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{scalenative-figstyle}[2026/10/06 v0.2 ScaleNative architecture-figure style]
+
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,calc,positioning,fit,backgrounds,shadows,
+                shapes.geometric,shapes.symbols,shapes.misc,patterns.meta}
+%% layers below the blocks, deepest first: a frame that carries a fill and is fitted around nodes that are
+%% already drawn must sit BELOW them, and an outer frame below an inner one
+\pgfdeclarelayer{afbgC}\pgfdeclarelayer{afbgB}\pgfdeclarelayer{afbgA}
+\pgfsetlayers{afbgC,afbgB,afbgA,background,main}
+
+%% ---------------------------------------------------------------------------
+%% 1. Fonts.  T1 encoding is declared without changing the host's default encoding.
+%%    Sizes are given in bp (PostScript points): the PDF then says exactly 8.00 / 9.00 / 10.00.
+%% ---------------------------------------------------------------------------
+\edef\af@savedenc{\encodingdefault}
+\RequirePackage[T1]{fontenc}
+\edef\encodingdefault{\af@savedenc}
+\fontencoding{\encodingdefault}\selectfont
+
+\newcommand{\AFfamily}{qhv}      % TeX Gyre Heros (Helvetica clone, Type 1); condensed cut: qhvc
+\newcommand{\af@sel}[4]{% family, series, shape, size in bp
+  \fontencoding{T1}\fontfamily{#1}\fontseries{#2}\fontshape{#3}%
+  \fontsize{#4bp}{\dimexpr#4bp*119/100\relax}\selectfont}
+%% the tiers -- every lettering macro of a figure must be one of these
+\newcommand{\AFtext}{\af@sel{\AFfamily}{m}{n}{8}}     % T3  block names, structural parameters
+\newcommand{\AFsig}{\af@sel{\AFfamily}{m}{it}{8}}     % T3i port and signal names (italic)
+\newcommand{\AFstrong}{\af@sel{\AFfamily}{b}{n}{8}}   % T3b name of a highlighted block (main line)
+\newcommand{\AFnote}{\af@sel{\AFfamily}{m}{it}{8}\color{AFink2}} % T3n notes ("waits for ...")
+\newcommand{\AFtitle}{\af@sel{\AFfamily}{b}{n}{9}}    % T2  unit / container names, panel titles
+\newcommand{\AFbig}{\af@sel{\AFfamily}{b}{n}{10}}     % T1  figure-level labels (rare)
+\newcommand{\AFnarrow}{\af@sel{qhvc}{m}{n}{8}}        % T3c condensed cut, 8 bp nominal: PARAMETER LINES ONLY, never a block name
+%   (its capitals are 0.718 em high against 0.729 em: it reads as 7.9 bp, and it is 18 % narrower)
+\newcommand{\AFminbp}{8}                              % the floor that build-figures.sh checks
+
+%% ---------------------------------------------------------------------------
+%% 2. Colours.   <name>S = stroke, <name>F = fill.
+%% ---------------------------------------------------------------------------
+\definecolor{AFink}{HTML}{000000}
+\definecolor{AFink2}{HTML}{4D4D4D}       % control lines, leaders, notes
+\definecolor{AFpaper}{HTML}{FFFFFF}
+% -- modules (overview figures; frames of the unit figures)
+\definecolor{AFTensorS}{HTML}{1F5FB4}   \definecolor{AFTensorF}{HTML}{8FBCF0}   % Tensor unit
+\definecolor{AFVectorS}{HTML}{C2501E}   \definecolor{AFVectorF}{HTML}{E8824E}   % Vector unit / Vector cores (dark enough to separate from Tensor in grey scale)
+\definecolor{AFIbexS}{HTML}{16855D}     \definecolor{AFIbexF}{HTML}{BFE8D6}     % Ibex CPU
+\definecolor{AFCmdS}{HTML}{0B6B0B}      \definecolor{AFCmdF}{HTML}{9FD49F}      % Command processor
+\definecolor{AFLoneS}{HTML}{5C0547}     \definecolor{AFLoneF}{HTML}{8B086B}     % L1 (white ink)
+\definecolor{AFLtwoS}{HTML}{B8436F}     \definecolor{AFLtwoF}{HTML}{F2B3CB}     % L2
+\definecolor{AFLthreeS}{HTML}{7A2A4C}   \definecolor{AFLthreeF}{HTML}{D98AA9}   % L3 (shared memory on the mesh)
+\definecolor{AFDMAS}{HTML}{2F2478}      \definecolor{AFDMAF}{HTML}{4A3AA7}      % DMA (white ink)
+\definecolor{AFNoCS}{HTML}{3B3B3B}      \definecolor{AFNoCF}{HTML}{C9C8C5}      % NoC endpoint, router, links
+\definecolor{AFCtrlCoreS}{HTML}{16855D} \definecolor{AFCtrlCoreF}{HTML}{E3F4EC} % on-chip Control Core
+\definecolor{AFHostS}{HTML}{52514E}     \definecolor{AFHostF}{HTML}{FFFFFF}     % host / off-chip
+\definecolor{AFNeutS}{HTML}{52514E}     \definecolor{AFNeutF}{HTML}{F2F2F2}     % neutral: artefacts in the method-flow figure
+\definecolor{AFCellS}{HTML}{000000}     \definecolor{AFCellF}{HTML}{FFFFFF}     % one PE of the mesh in the system figure (all cells alike, white)
+% -- function classes (inside the unit figures); compute takes the unit's own module colour
+\definecolor{AFFnCtlS}{HTML}{16855D}    \definecolor{AFFnCtlF}{HTML}{D9F0E4}    % control: light
+\definecolor{AFFnStoS}{HTML}{1E2530}    \definecolor{AFFnStoF}{HTML}{3D4A5C}    % storage: dark (white ink)
+\colorlet{AFFnCmpTS}{AFTensorS}         \colorlet{AFFnCmpTF}{AFTensorF}         % compute in the Tensor unit figure: mid
+\colorlet{AFFnCmpVS}{AFVectorS}         \colorlet{AFFnCmpVF}{AFVectorF}         % compute in the Vector unit figure: mid
+% -- emphasis
+\definecolor{AFMainS}{HTML}{000000}     \definecolor{AFMainF}{HTML}{FFE08A}     % main line: thick ink on a light underlay
+\definecolor{AFErrS}{HTML}{C1121F}      \definecolor{AFErrF}{HTML}{FDE3E3}      % error / reject paths ONLY
+\definecolor{AFSlotS}{HTML}{8A8A8A}     \definecolor{AFSlotF}{HTML}{FFFFFF}     % open slot (not yet defined)
+\definecolor{AFModelS}{HTML}{8A8A8A}    \definecolor{AFModelF}{HTML}{EEEEEE}    % region that exists only in the model
+
+%% ---------------------------------------------------------------------------
+%% 3. Line widths and arrow tips
+%% ---------------------------------------------------------------------------
+\newcommand{\AFlw}{0.6bp}        % block outlines, data lines
+\newcommand{\AFlwthin}{0.4bp}    % separators, leaders (never thinner than this)
+\newcommand{\AFlwctl}{0.5bp}     % control lines
+\newcommand{\AFlwframe}{1.2bp}   % unit boundary
+\newcommand{\AFlwmain}{1.6bp}    % main line
+\newcommand{\AFlwbus}{1.2bp}     % bus-level double arrows
+\newcommand{\AFlaneband}{3bp}    % length of the separator ticks of `af lanes'
+
+\tikzset{
+  af tip/.tip={Latex[length=4bp,width=3.2bp]},
+  af tip open/.tip={Latex[open,length=4bp,width=3.2bp]},
+  af tip main/.tip={Latex[length=6bp,width=5bp]},
+  af tip err/.tip={Latex[length=4bp,width=3.2bp]Bar[width=5bp,sep=1bp]},
+  % ---- lines ---------------------------------------------------------------
+  af data/.style={draw=AFink, line width=\AFlw, -{af tip}},
+  af data bi/.style={draw=AFink, line width=\AFlw, {af tip}-{af tip}},
+  af wire/.style={draw=AFink, line width=\AFlw},
+  af ctl/.style={draw=AFink2, line width=\AFlwctl, dash pattern=on 2.4bp off 1.6bp, -{af tip open}},
+  af ctl wire/.style={draw=AFink2, line width=\AFlwctl, dash pattern=on 2.4bp off 1.6bp},
+  af main/.style={draw=AFMainS, line width=\AFlwmain, -{af tip main},
+                  preaction={draw=AFMainF, line width=5.2bp, -, solid, line cap=butt}},
+  af main wire/.style={draw=AFMainS, line width=\AFlwmain,
+                  preaction={draw=AFMainF, line width=5.2bp, -, solid, line cap=butt}},
+  af err/.style={draw=AFErrS, line width=0.8bp, dash pattern=on 4bp off 1.2bp on 0.8bp off 1.2bp, -{af tip err}},
+  af bus/.style={draw=AFink, line width=\AFlwbus, {Latex[length=4.5bp,width=4.5bp]}-{Latex[length=4.5bp,width=4.5bp]}},
+  af leader/.style={draw=AFink2, line width=\AFlwthin},
+  % a link between neighbouring mesh cells (system figure): short, two small tips, so that it still reads in a 10 bp gap
+  af link/.style={draw=AFink, line width=\AFlw, {Latex[length=3bp,width=2.6bp]}-{Latex[length=3bp,width=2.6bp]}},
+  % a slash across a line + its width label:  ... -- node[af slash]{} node[af wlabel]{64 B/cycle} ...
+  af slash/.style={pos=.5, minimum size=5bp, inner sep=0pt,
+     path picture={\draw[-,solid,line width=\AFlwctl,draw=AFink] (path picture bounding box.south west) -- (path picture bounding box.north east);}},
+  af wlabel/.style={pos=.5, font=\AFtext, inner sep=1.5bp, text=AFink},
+  % ---- generic block -------------------------------------------------------
+  af blk/.style={draw=AF#1S, fill=AF#1F, text=AFink, line width=\AFlw, rectangle, align=center,
+                 inner xsep=2bp, inner ysep=1.5bp, minimum height=11bp, font=\AFtext},
+  af blk dark/.style={af blk=#1, text=AFpaper},
+  % ---- function classes (unit figures) -------------------------------------
+  af fn ctl/.style={af blk=FnCtl},                                   % control
+  af fn sto/.style={af blk dark=FnSto, rounded rectangle, rounded rectangle arc length=120}, % storage (round-ended)
+  af fn cmp/.style={af blk=#1},                                      % compute: af fn cmp=Tensor | Vector
+  % ---- shapes --------------------------------------------------------------
+  % register: thin bar with a clock triangle.  af reg v=<height>  (vertical)   af reg h=<width>  (horizontal)
+  af reg v/.style={draw=AFink, fill=AFpaper, line width=\AFlw, rectangle, inner sep=0pt, minimum width=5bp, minimum height=#1,
+     path picture={\draw[-,solid,line width=\AFlwthin,draw=AFink] ([xshift=-2.2bp]path picture bounding box.south)
+        -- ([yshift=3.4bp]path picture bounding box.south) -- ([xshift=2.2bp]path picture bounding box.south);}},
+  af reg h/.style={draw=AFink, fill=AFpaper, line width=\AFlw, rectangle, inner sep=0pt, minimum height=5bp, minimum width=#1,
+     path picture={\draw[-,solid,line width=\AFlwthin,draw=AFink] ([yshift=-2.2bp]path picture bounding box.east)
+        -- ([xshift=-3.4bp]path picture bounding box.east) -- ([yshift=2.2bp]path picture bounding box.east);}},
+  % storage (SRAM, buffer): round-ended box
+  af mem/.style={af blk=#1, rounded rectangle, rounded rectangle arc length=120},
+  af mem dark/.style={af blk dark=#1, rounded rectangle, rounded rectangle arc length=120},
+  % operators: circle with a drawn cross / plus (no glyph -> no math font needed)
+  af op/.style={draw=AFink, fill=AFpaper, line width=\AFlw, circle, inner sep=0pt, minimum size=9bp},
+  af mul/.style={af op, path picture={\draw[-,solid,line width=\AFlw,draw=AFink]
+        ($(path picture bounding box.center)+(-2.3bp,-2.3bp)$) -- ($(path picture bounding box.center)+(2.3bp,2.3bp)$)
+        ($(path picture bounding box.center)+(-2.3bp,2.3bp)$) -- ($(path picture bounding box.center)+(2.3bp,-2.3bp)$);}},
+  af add/.style={af op, path picture={\draw[-,solid,line width=\AFlw,draw=AFink]
+        ($(path picture bounding box.center)+(-3.2bp,0)$) -- ($(path picture bounding box.center)+(3.2bp,0)$)
+        ($(path picture bounding box.center)+(0,-3.2bp)$) -- ($(path picture bounding box.center)+(0,3.2bp)$);}},
+  % selector (multiplexer): trapezium, narrow side = output.  af mux=<rotation> (270 -> output to the east)
+  af mux/.style={draw=AFink, fill=AFpaper, line width=\AFlw, trapezium, trapezium angle=68, shape border rotate=#1,
+                 inner sep=1.5bp, minimum width=14bp, font=\AFtext},
+  af mux/.default=270,
+  % queue (FIFO): box with #1 slots
+  af queue/.style={draw=AFink, fill=AFpaper, line width=\AFlw, rectangle, inner sep=0pt, minimum height=9bp, minimum width=#1*5bp,
+     path picture={\pgfmathtruncatemacro\af@n{#1-1}\foreach \af@i in {1,...,\af@n}{%
+        \draw[-,solid,line width=\AFlwthin,draw=AFink]
+          ($(path picture bounding box.south west)!\af@i/#1!(path picture bounding box.south east)$) --
+          ($(path picture bounding box.north west)!\af@i/#1!(path picture bounding box.north east)$);}}},
+  af queue/.default=4,
+  % port on a unit boundary: pentagon pointing in the direction of flow.  af port=east|west|north|south
+  af port/.style={draw=AFink, fill=AFpaper, line width=\AFlw, signal, signal to=#1, signal pointer angle=90,
+                  inner sep=0pt, minimum width=7bp, minimum height=6bp},
+  af port/.default=east,
+  % replicated lanes: one block with #2 lanes, to be labelled "(x N)".  The separators are drawn only in a
+  % band of \AFlaneband at the top and at the bottom edge, so that no line runs through the lettering
+  af lanes/.style 2 args={af blk=#1,
+     path picture={\pgfmathtruncatemacro\af@n{#2-1}\foreach \af@i in {1,...,\af@n}{%
+        \draw[-,solid,line width=\AFlwthin,draw=AF#1S]
+          ($(path picture bounding box.south west)!\af@i/#2!(path picture bounding box.south east)$) -- ++(0,\AFlaneband);
+        \draw[-,solid,line width=\AFlwthin,draw=AF#1S]
+          ($(path picture bounding box.north west)!\af@i/#2!(path picture bounding box.north east)$) -- ++(0,-\AFlaneband);}}},
+  % the same for lanes that run left to right (separators are horizontal ticks at the left and right edge)
+  af lanes h/.style 2 args={af blk=#1,
+     path picture={\pgfmathtruncatemacro\af@n{#2-1}\foreach \af@i in {1,...,\af@n}{%
+        \draw[-,solid,line width=\AFlwthin,draw=AF#1S]
+          ($(path picture bounding box.south west)!\af@i/#2!(path picture bounding box.north west)$) -- ++(\AFlaneband,0);
+        \draw[-,solid,line width=\AFlwthin,draw=AF#1S]
+          ($(path picture bounding box.south east)!\af@i/#2!(path picture bounding box.north east)$) -- ++(-\AFlaneband,0);}}},
+  % one PE of the mesh in the system figure: all cells alike, white
+  af pe cell/.style={draw=AFCellS, fill=AFCellF, text=AFink, line width=\AFlw, rectangle, inner sep=0pt,
+                     minimum size=15bp, font=\AFtext},
+  % stacked copies ("one shown, the rest folded")
+  af stack/.style={double copy shadow={shadow xshift=1.6bp, shadow yshift=-1.6bp, fill=AFpaper, draw=AFink, line width=\AFlwthin}},
+  % frames
+  af unit/.style={draw=AFink, line width=\AFlwframe, rounded corners=4bp, inner sep=4bp},      % unit boundary (thick, black)
+  af unit tint/.style={af unit, fill=AF#1F!22!white, draw=AF#1S},                              % unit boundary in its module colour
+  af group/.style={draw=AF#1S, line width=\AFlw, rounded corners=2bp, inner sep=3bp, fill=AF#1F!14!white},
+  af frame label/.style={font=\AFtitle, text=AFink, inner sep=1.5bp},
+  % open slot: something the design has not fixed yet (NOT an implementation-status mark)
+  af slot/.style={draw=AFSlotS, fill=AFSlotF, line width=\AFlw, dash pattern=on 1.2bp off 1.2bp, rectangle, align=center,
+                  inner sep=2bp, font=\AFnote, text=AFink2, minimum height=11bp},
+  % region that exists only in the model: light hatch
+  af model/.style={draw=AFModelS, line width=\AFlwthin, pattern={Lines[angle=45,distance=3.5bp,line width=0.3bp]},
+                   pattern color=AFModelS!45!white, rounded corners=2bp},
+  % main-line block (the ingress check): the main-line colour takes precedence -- such a block is NOT coloured
+  % by function class or by module, in every figure
+  af main area/.style={draw=AFMainS, fill=AFMainF, line width=\AFlwmain, rectangle, align=center,
+                       inner xsep=2bp, inner ysep=1.5bp, minimum height=11bp, font=\AFstrong, text=AFink},
+  % the alternative, kept so that the choice can be switched in one place: fill of the given family,
+  % thick edge, yellow halo.   af main ring=FnCtl | Vector | ...
+  af main ring/.style={draw=AFMainS, fill=AF#1F, line width=\AFlwmain, rectangle, align=center,
+                       inner xsep=2bp, inner ysep=1.5bp, minimum height=11bp, font=\AFstrong, text=AFink,
+                       preaction={draw=AFMainF, line width=5.2bp}},
+  % text-only nodes
+  af lbl/.style={font=\AFtext, text=AFink, inner sep=1bp, align=center},
+  af sig/.style={font=\AFsig, text=AFink, inner sep=1bp},
+  af note/.style={font=\AFnote, inner sep=1bp, align=left},
+  af panel/.style={font=\AFtitle, text=AFink, inner sep=0pt, anchor=north west},
+  % ---- canvas --------------------------------------------------------------
+  % 0.01 in written as 0.7227pt: TeX reads `0.01in' as 0.72230pt (the fraction is rounded before the unit is applied),
+  % which would make a 333-unit canvas 0.14 pt too narrow
+  af base/.style={x=0.7227pt, y=0.7227pt, line cap=butt, line join=miter, font=\AFtext, text=AFink},
+}
+
+%% ---------------------------------------------------------------------------
+%% 5. Canvas.  Unit = 0.01 in.  S = 333 wide (3.33 in), F = 700 wide (7.0 in).
+%%    \begin{AFcanvas}[<tikz options>]{S|F}{<height in 0.01 in>} ... \end{AFcanvas}
+%%    The bounding box is fixed, so the PDF page is exactly the slot width whatever is drawn -- which also
+%%    means that the page width says NOTHING about whether the drawing fits.  Hence \AFboxmode:
+%%      0  fixed box = the canvas                                   (the figure that ships; the default)
+%%      1  natural box: the canvas rectangle is an ordinary path, so the page grows when anything that TikZ
+%%         keeps track of lies outside the canvas; the natural box is also written to the log (AFNATBOX)
+%%      2  fixed box = the canvas plus \AFmarginbp bp on every side: render it and look for ink in the
+%%         margin; this also shows what mode 1 cannot see (`overlay' material and the like)
+%%    Set it from outside, never in a figure:   pdflatex '\def\AFboxmode{1}\input{fig-xxx.tex}'
+%%    For modes 1 and 2 to mean anything, a figure body must not contain: \useasboundingbox / use as
+%%    bounding box, overlay, \clip / clip, pgfinterruptboundingbox, trim left / trim right, \resizebox, \scalebox.
+%%    \AFgridtrue draws a 10 / 50-unit layout grid (never in a final figure).
+%% ---------------------------------------------------------------------------
+\providecommand{\AFboxmode}{0}
+\providecommand{\AFmarginbp}{36}
+\newif\ifAFgrid \AFgridfalse
+\newcommand{\AFwS}{333}
+\newcommand{\AFwF}{700}
+\newenvironment{AFcanvas}[3][]{%
+  \begin{tikzpicture}[af base,#1]%
+  \ifx S#2\def\AFw{\AFwS}\else\ifx F#2\def\AFw{\AFwF}\else
+     \PackageError{scalenative-figstyle}{AFcanvas width class must be S or F}{}\def\AFw{\AFwS}\fi\fi
+  \def\AFh{#3}%
+  \ifcase\AFboxmode\relax
+    \useasboundingbox (0,0) rectangle (\AFw,\AFh);
+  \or
+    \path (0,0) rectangle (\AFw,\AFh);
+  \or
+    \useasboundingbox ([xshift=-\AFmarginbp bp,yshift=-\AFmarginbp bp]0,0) rectangle ([xshift=\AFmarginbp bp,yshift=\AFmarginbp bp]\AFw,\AFh);
+  \else
+    \PackageError{scalenative-figstyle}{AFboxmode must be 0, 1 or 2}{}%
+  \fi
+  \typeout{AFCANVAS|#2|\AFw|\AFh|mode \AFboxmode}%
+  \ifAFgrid
+    \draw[line width=0.2bp,draw=black!12] (0,0) grid[step=10] (\AFw,\AFh);
+    \draw[line width=0.3bp,draw=black!30] (0,0) grid[step=50] (\AFw,\AFh);
+    % counted loops: a list {50,100,...,\AFh} would put a label at 100 on a canvas lower than 100 units
+    \pgfmathtruncatemacro\af@nx{\AFw/50}\pgfmathtruncatemacro\af@ny{\AFh/50}%
+    \foreach \af@k in {0,...,\af@nx}{\pgfmathtruncatemacro\af@x{50*\af@k}\node[font=\AFtext,text=black!45,anchor=south west,inner sep=0.5bp] at (\af@x,0) {\af@x};}
+    \ifnum\af@ny>0 \foreach \af@k in {1,...,\af@ny}{\ifnum\af@k>0 \pgfmathtruncatemacro\af@y{50*\af@k}\node[font=\AFtext,text=black!45,anchor=south west,inner sep=0.5bp] at (0,\af@y) {\af@y};\fi}\fi
+  \fi
+}{%
+  \ifnum\AFboxmode=1 % natural box of everything TikZ kept track of, in TeX pt, origin = canvas corner
+    \typeout{AFNATBOX|\the\pgf@picminx|\the\pgf@picminy|\the\pgf@picmaxx|\the\pgf@picmaxy}%
+  \fi
+  \end{tikzpicture}}
+
+%% A frame fitted around nodes that are already drawn.  `af unit tint' and `af group' carry a fill; used with
+%% `fit' on the main layer they paint over the blocks they enclose.  Use these instead:
+%%   \AFfit[<style>]{<name>}{(a)(b)(c)}           frame directly around blocks
+%%   \AFfitouter[<style>]{<name>}{(f1)(f2)}       frame around frames made with \AFfit
+%%   \AFfitoutermost[<style>]{<name>}{(g1)(g2)}   one level further out
+\newcommand{\AFfit}[3][af unit]{\begin{pgfonlayer}{afbgA}\node[#1, fit=#3] (#2) {};\end{pgfonlayer}}
+\newcommand{\AFfitouter}[3][af unit]{\begin{pgfonlayer}{afbgB}\node[#1, fit=#3] (#2) {};\end{pgfonlayer}}
+\newcommand{\AFfitoutermost}[3][af unit]{\begin{pgfonlayer}{afbgC}\node[#1, fit=#3] (#2) {};\end{pgfonlayer}}
+%% the same for a frame given by its two corners:  \AFbox[<style>]{<name>}{(x0,y0)}{(x1,y1)}
+\newcommand{\AFbox}[4][af unit]{\begin{pgfonlayer}{afbgA}\node[#1, fit={#3 #4}, inner sep=0pt] (#2) {};\end{pgfonlayer}}
+\newcommand{\AFboxouter}[4][af unit]{\begin{pgfonlayer}{afbgB}\node[#1, fit={#3 #4}, inner sep=0pt] (#2) {};\end{pgfonlayer}}
+\newcommand{\AFboxoutermost}[4][af unit]{\begin{pgfonlayer}{afbgC}\node[#1, fit={#3 #4}, inner sep=0pt] (#2) {};\end{pgfonlayer}}
+%% panel title:  \AFpanel{(a)}{Array organization}{<x>}{<y>}   (top-left corner of the panel)
+\newcommand{\AFpanel}[4]{\node[af panel] at (#3,#4) {#1\enspace#2};}
+%% replication mark:  \AFtimes{16}  ->  (x16) with a real multiplication sign
+\newcommand{\AFtimes}[1]{(\texttimes\,#1)}
+%% a plain multiplication sign in the figure font (TS1 Heros), e.g. 16\,\AFx\,16
+\newcommand{\AFx}{\texttimes}
+%% a variable name (a parameter such as W) in the figure font.  Do NOT use math mode inside a figure:
+%% math fonts come in fixed design sizes (cmmi8 is 8 TeX pt = 7.97 bp) and fall below the 8 bp floor.
+\newcommand{\AFvar}[1]{{\AFsig #1}}
+\endinput

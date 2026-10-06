@@ -1,0 +1,48 @@
+%% ============================================================================
+%% preamble/meta.tex -- title, names and links: the things that change between a
+%% share build and a submission, kept in one place.
+%% ============================================================================
+
+% Working title.  A build that prints names puts the project name in front of it; an anonymous
+% build does not (double-blind venues ask for a system name and a title that differ from any
+% public version: set \PaperTitleCore differently for a submission if the venue asks for it).
+\newcommand{\PaperTitleCore}{Keeping GEMM Results Block-Scaled across the Tensor--Vector Hand-off: When Does It Pay Off?}
+\newcommand{\PaperTitleCorePDF}{Keeping GEMM Results Block-Scaled across the Tensor-Vector Hand-off: When Does It Pay Off?}
+\newcommand{\PaperSysNamePublic}{ScaleNative}  % the project name
+\newcommand{\PaperSysNameAnon}{[System]}      % the name used in an anonymous submission
+\ifPaperAnon
+  \newcommand{\PaperTitle}{\PaperTitleCore}
+  \newcommand{\PaperTitlePDF}{\PaperTitleCorePDF}
+\else
+  % The signed build prints the working title without the project name: "ScaleNative: ...: When Does
+  % It Pay Off?" reads badly with two colons and wraps to three lines.  The name is used in the text
+  % (\SysName).  To put it in the title, replace the two lines below by
+  %   \newcommand{\PaperTitle}{\PaperSysNamePublic: \PaperTitleCore} (and likewise \PaperTitlePDF).
+  \newcommand{\PaperTitle}{\PaperTitleCore}
+  \newcommand{\PaperTitlePDF}{\PaperTitleCorePDF}
+\fi
+\newcommand{\PaperShortTitle}{Keeping GEMM Results Block-Scaled}
+\newcommand{\PaperVersion}{first full text, 2026-10-06}
+\newcommand{\PaperKeywords}{}                 % left empty until the text exists
+
+% System name in the text.  A submission to a double-blind venue must not use the public name.
+\newcommand{\SysName}{\ifPaperAnon\PaperSysNameAnon\else\PaperSysNamePublic\fi\xspace}
+
+% Repository.  The public repository (printed by a build that shows names; never by an anonymous
+% build).  While this is empty \RepoLink prints a placeholder.
+\providecommand{\PaperRepoURL}{https://github.com/fifakaka35357/ScaleNative}
+% \RepoLink prints the public URL, an anonymized URL (\PaperRepoAnonURL) or a neutral phrase.
+\newcommand{\RepoLink}{%
+  \ifcase\PaperRepoMode
+    \ifdefempty{\PaperRepoURL}{\TBD{N}{repository URL}}{\expandafter\url\expandafter{\PaperRepoURL}}%
+  \or
+    \expandafter\url\expandafter{\PaperRepoAnonURL}%
+  \else
+    [artifact link withheld for double-blind review]%
+  \fi}
+
+% Note attached to the title of a share build (never printed in a submission).
+\newcommand{\PaperNoticeText}{Working draft (\PaperVersion) under a working title; not peer reviewed, not submitted to any venue.
+  Colored brackets mark open items; gray tags name paragraphs; empty frames stand for figures to come.%
+  \ifdefempty{\PaperRepoURL}{\ifnum\PaperTBDmode<2 { Sources: \RepoLink}\fi}{ Sources: \RepoLink}}
+\endinput

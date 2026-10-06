@@ -1,0 +1,98 @@
+diff --git a/flow/scripts/cts.tcl b/flow/scripts/cts.tcl
+index 18ebf9c3dd56a9ecb2cf55c30ad8c06085332ca4..17affd4a060bcb8f35694f5c18659798788a8437 100644
+--- a/flow/scripts/cts.tcl
++++ b/flow/scripts/cts.tcl
+@@ -46,7 +46,18 @@ set_placement_padding -global \
+   -left $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT) \
+   -right $::env(CELL_PAD_IN_SITES_DETAIL_PLACEMENT)
+ 
+-set result [catch { detailed_placement_helper } msg]
++set dpl_args {}
++# LOCAL PATCH (aichip 2026-07-11): expose -max_displacement for the post-CTS
++# legalization. Macro-dominated asap7 aichip_l2 inserts ~3.4k hold buffers at
++# macro input pins; rsz drops them at wire midpoints (often on macros/halo)
++# and the stock displacement limit leaves ~37 cells unplaceable (DPL-0036).
++# Unset -> no arg -> stock behavior.
++# Ported 2026-09-29 (pin 49416916f): upstream dropped dpl_args and sends every
++# legalization through detailed_placement_helper { args }; passing the arg to the
++# two CTS calls below keeps it CTS-only, as before (DETAIL_PLACEMENT_ARGS would also
++# apply it to placement and global route).
++append_env_var dpl_args DPL_MAX_DISPLACEMENT -max_displacement 1
++set result [catch { detailed_placement_helper {*}$dpl_args } msg]
+ if { $result != 0 } {
+   save_progress 4_1_error
+   error "Detailed placement failed in CTS: $msg"
+@@ -71,7 +82,7 @@ if { !$::env(SKIP_CTS_REPAIR_TIMING) } {
+     run_lec_test 4_rsz 4_before_rsz_lec.v 4_after_rsz_lec.v
+   }
+ 
+-  set result [catch { detailed_placement_helper } msg]
++  set result [catch { detailed_placement_helper {*}$dpl_args } msg]
+   if { $result != 0 } {
+     save_progress 4_1_error
+     error "Detailed placement failed in CTS: $msg"
+diff --git a/flow/scripts/detail_route.tcl b/flow/scripts/detail_route.tcl
+index 538e8476e0d7fd5e2736d072a91d65f2b586dac1..20d30f4dce0e4fa509a6caee552447e90a626973 100644
+--- a/flow/scripts/detail_route.tcl
++++ b/flow/scripts/detail_route.tcl
+@@ -53,6 +53,13 @@ if { !$::env(SKIP_DETAILED_ROUTE) } {
+     !$::env(SKIP_ANTENNA_REPAIR_POST_DRT) &&
+     [env_var_exists_and_non_empty MAX_REPAIR_ANTENNAS_ITER_DRT]
+   } {
++    # LOCAL PATCH (aichip 2026-07-17): checkpoint the converged DRT result before
++    # repair_antennas. On pe_top (2.4M cells) repair_antennas re-routing crashed
++    # OpenROAD with GRT-0183 (heap underflow in 3D maze routing) and the only
++    # orfs_write_db of 5_2_route.odb sits after this block — the crash lost 3.2h
++    # of converged detailed routing. Recovery: copy this checkpoint over
++    # 5_2_route.odb. ORFS 升级时需重打。
++    orfs_write_db $::env(RESULTS_DIR)/5_2_route_predrt_antenna.odb
+     set repair_antennas_iters 1
+     if { [repair_antennas] } {
+       detailed_route {*}$all_args
+diff --git a/flow/scripts/floorplan.tcl b/flow/scripts/floorplan.tcl
+index f4ca400139d872983bc979218cc71f4e332274ad..56eb07d7083df59610e1baca744421262f06dd57 100644
+--- a/flow/scripts/floorplan.tcl
++++ b/flow/scripts/floorplan.tcl
+@@ -154,6 +154,25 @@ if { [env_var_equals SWAP_ARITH_OPERATORS 1] } {
+ if { $::env(REMOVE_ABC_BUFFERS) } {
+   # remove buffers inserted by yosys/abc
+   log_cmd remove_buffers
++} elseif { [env_var_exists_and_non_empty SKIP_FLOORPLAN_REPAIR] } {
++  # LOCAL PATCH (aichip 2026-07-13). ORFS 升级时需重打。
++  #
++  # 跳过 floorplan 阶段的 setup repair。它对 pe_top 结构性无效：
++  #   move sequence = unbuffer,sizeup,swap,vt_swap —— 里面没有任何"插 buffer"的动作，
++  #   而 pe_top 的违例全部来自高扇出广播网的布局前寄生伪影：
++  #     i_tens/dom_rst_n  fanout 51,487，由一个 a21boi_0(最小驱动)驱动，cap 187pF，
++  #     delay 4.62us  -> recovery check slack -6197ns（70ns 时钟）
++  #   一条 5 万扇出的网只能靠 buffer 树修，而这个序列建不了 buffer 树。
++  #
++  # 实测（EVIDENCE_floorplan_repair_churn_20260713.log）：718 轮迭代 / 45 分钟，
++  # WNS 自第 150 轮起冻结在 -5599.801 不动，面积 +0.0%，预计跑满 4074 轮需 3.6 小时，
++  # 收益为零。这些网由 3_4 resize 的 repair_design 用 max_fanout/max_cap 正确建树修复。
++  #
++  # 这不是掩盖违例：违例仍会出现在后续所有 STA 报告里，只是不再让一个修不动它的
++  # pass 空转几小时。ORFS 自己也承认此场景（variables.yaml REMOVE_ABC_BUFFERS 条目：
++  # "If timing repair in floorplanning is taking too long..."）。
++  puts "\[LOCAL-PATCH\] SKIP_FLOORPLAN_REPAIR=1 -> floorplan-stage repair_timing skipped."
++  puts "\[LOCAL-PATCH\] 高扇出广播网的 setup/recovery 违例留给 3_4 repair_design 处理。"
+ } else {
+   # Skip clone & split
+   repair_timing_helper -setup -skip_last_gasp -sequence "unbuffer,sizeup,swap,vt_swap"
+diff --git a/flow/scripts/util.tcl b/flow/scripts/util.tcl
+index 912762199a1c9b6390968ff92604eb869baa1b52..cb12e334bfb0a930a9c108e28d19c5313313bd79 100644
+--- a/flow/scripts/util.tcl
++++ b/flow/scripts/util.tcl
+@@ -29,6 +29,12 @@ proc log_cmd { cmd args } {
+ 
+ proc repair_timing_helper { args } {
+   set additional_args {}
++  # LOCAL PATCH (aichip 2026-07-11): expose repair_timing -max_buffer_percent.
++  # Macro-dominated blocks (asap7 aichip_l2: 32 fakeram7 macros, only 6.3k
++  # std cells) hit RSZ-0060 in CTS hold repair — the default cap (20% of
++  # instance count) is tiny while every macro input pin needs hold buffers
++  # (fakeram7 lib hold = 50ps). Unset -> no arg -> stock behavior.
++  append_env_var additional_args MAX_BUFFER_PERCENT -max_buffer_percent 1
+   append_env_var additional_args SETUP_SLACK_MARGIN -setup_margin 1
+   append_env_var additional_args HOLD_SLACK_MARGIN -hold_margin 1
+   append_env_var additional_args SETUP_MOVE_SEQUENCE -sequence 1

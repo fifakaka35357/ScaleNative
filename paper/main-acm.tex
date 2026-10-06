@@ -1,0 +1,86 @@
+%% ============================================================================
+%% main-acm.tex -- ACM shell (acmart).  This is the primary entry: the share build
+%% uses the ASPLOS page format (sigplan, 10 pt), the tightest of the four venues.
+%% Everything that is not specific to the document class lives elsewhere:
+%%   preamble/switches.tex  build switches        preamble/common.tex  shared macros
+%%   body.tex               the list of sections  sections/*.tex       the text
+%%   authors.tex            the author list       backmatter/*.tex     acknowledgments etc.
+%% Build with ./build.sh (see README-build.md); do not edit the text here.
+%% ============================================================================
+\input{preamble/switches}
+\PaperRequireVenue{none,asplos27,micro26}     % the venues this shell implements
+
+% ---- class options ---------------------------------------------------------------
+\def\PaperClassOptions{sigplan,10pt,nonacm}                           % share build
+\PaperIfVenue{micro26}{\def\PaperClassOptions{sigconf,nonacm}}{}      % MICRO page format (9 pt)
+\PaperIfEq\PaperACMFormat{sigplan}{\def\PaperClassOptions{sigplan,10pt,nonacm}}{}
+\PaperIfEq\PaperACMFormat{sigconf}{\def\PaperClassOptions{sigconf,nonacm}}{}
+\ifPaperSubmit
+  % ASPLOS 2027 call: "sigplan, anonymous, review, and non-acm options"; no banner
+  \PaperIfVenue{asplos27}{\def\PaperClassOptions{sigplan,10pt,anonymous,review,nonacm}}{}
+  \PaperIfVenue{none}{\def\PaperClassOptions{sigplan,10pt,anonymous,review,nonacm}}{}
+  % MICRO 2026 template: [sigconf, screen, review], no \author, banner in \subtitle
+  \PaperIfVenue{micro26}{\def\PaperClassOptions{sigconf,screen,review}}{}
+\else
+  \ifPaperAnon\edef\PaperClassOptions{\PaperClassOptions,anonymous}\fi
+\fi
+\expandafter\PassOptionsToClass\expandafter{\PaperClassOptions}{acmart}
+\documentclass{acmart}
+\input{preamble/common}
+\input{preamble/authors-acm}
+
+\settopmatter{printfolios=true,printacmref=false}
+\ifPaperSubmit
+  \PaperIfVenue{micro26}{% front-matter settings of the MICRO 2026 template ("58th" is the template's own wording)
+    \setcopyright{none}\copyrightyear{2026}\acmYear{2026}\acmDOI{XXXXXXX.XXXXXXX}%
+    \acmConference[MICRO 2026]{The 58th IEEE/ACM International Symposium on Microarchitecture}{October 31--November 04, 2026}{Athens, Greece}%
+    \acmISBN{978-X-XXXX-XXXX-X/XX/XX}}{}
+\fi
+
+\begin{document}
+\title[\PaperShortTitle]{\texorpdfstring{\PaperTitle}{\PaperTitlePDF}}
+\ifPaperBanner   % submit mode only; of the ACM venues only MICRO has a banner
+  \subtitle{\normalsize{MICRO 2026 Submission \textbf{\#\PaperSubmissionID} -- Confidential Draft -- Do NOT Distribute!!}}
+\fi
+\ifPaperNotice\titlenote{\PaperNoticeText}\fi
+\ifPaperAnon
+  % authors.tex is not read at all; with the `anonymous' option acmart prints "Anonymous Author(s)"
+  \PaperIfVenue{micro26}{}{\author{Anonymous Author(s)}\affiliation{\institution{Anonymous}\country{Anonymous}}}
+\else
+  \input{authors}
+\fi
+\ifdefempty{\PaperKeywords}{}{\keywords{\PaperKeywords}}
+
+\begin{abstract}
+\input{sections/00-abstract}
+\end{abstract}
+\maketitle
+
+\input{body}
+
+% ---- acknowledgments and AI-use statement ------------------------------------------
+% (acmart reads the acks environment line by line: \begin{acks} and \end{acks} must each
+%  start a line of their own, without indentation)
+\ifPaperAcks
+\begin{acks}
+\input{backmatter/acks}
+\ifPaperAIUse\par\input{backmatter/ai-use}\fi
+\end{acks}
+\else
+  \ifPaperAIUse
+    % acmart drops the acks environment in anonymous mode, so the statement gets a plain heading
+    \PaperIfVenue{micro26}{\PaperWarn{MICRO 2026 allows no acknowledgments: AI-use statement not printed}}%
+      {\section*{Acknowledgments}\input{backmatter/ai-use}}
+  \fi
+\fi
+
+\bibliographystyle{ACM-Reference-Format}
+\ifPaperNociteAll\nocite{*}\fi
+\bibliography{refs}
+
+\ifPaperAppendix
+  \appendix
+  \input{backmatter/appendix}
+\fi
+\PrintTBDIndex
+\end{document}

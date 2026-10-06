@@ -1,0 +1,17 @@
+%% tables/tab-configs.tex -- body of the table `tab:configs'.
+%% The float, the caption and the label are in sections/05-methodology.tex; this file sets the type size and the
+%% column separation itself, so that it alone decides how wide and how high the table is.
+%% No blank line in this file: check_align.py reads it as part of the unit that inputs it.
+\TableSize\setlength{\tabcolsep}{3pt}%
+\begin{tabular}{@{}ll@{}}
+\toprule
+Configuration & Definition \\
+\midrule
+\cfgAsBuilt & RTL as it stands; behavioral dual-port \Lii in simulation \\
+\cfgCorrected & plus a versioned list of fixes; main experiments \\
+\cfgProjected & plus more PEs, network and shared storage; projections \\
+(listed apart) & target-design points not yet in RTL \\
+\midrule
+\multicolumn{2}{@{}p{\PaperColW}@{}}{Forms of evidence: \evRTL, \evModel, \evAnalytic, \evSlice, \evPostRoute.} \\
+\bottomrule
+\end{tabular}

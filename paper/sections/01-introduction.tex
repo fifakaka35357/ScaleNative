@@ -1,0 +1,69 @@
+%% ============================================================================
+%% sections/01-introduction.tex -- Introduction
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 750 words of running text.
+%% ============================================================================
+
+\section{Introduction}\label{sec:intro}
+
+%% P:sec1-p1
+\ptag{sec1-p1}%
+The result of a general matrix multiplication (GEMM) can be consumed where it is produced, in an epilogue fused into the matrix engine, or it can take a scalar or a \blockscaled form and be handed to a separate unit.
+The choice changes where values are rounded, how long execution resources stay occupied, and what it costs to store intermediate results.
+This paper studies how these effects together decide when the block form is worth keeping.
+
+%% P:fig1-cap
+\FigSlot{fig:handoff}%
+  {The five hand-off placements side by side: where the result takes its representation, whether it passes through storage, and where it is consumed}%
+  {concept figure, not drawn yet}%
+  {Five \handoff placements. A \blockscaled (B) or scalar (S) result crosses directly (D) or through storage (M); \armSE instead fuses consumption into the producer's epilogue.}
+
+%% P:sec1-p2
+\ptag{sec1-p2}%
+Consider a GEMM followed by a residual add (\figref{fig:handoff}).
+In \armBD (block, direct), the matrix engine's outlet forms a \blockscaled result and a vector unit adds the residual in the block domain.
+In \armSD (scalar, direct), the outlet converts each value to scalar floating point.
+In \armSE (scalar, fused epilogue), the producer adds the residual in its epilogue before forming the output representation.
+As quantization does not commute with the add ($Q(A)+R \neq Q(A+R)$ in general), equal mantissa widths do not give equal numerical quality; each placement's computation and rounding order must be frozen before costs are compared.
+Removing a scalar conversion does not guarantee lower cost, and fusion, which saves a transfer, can hold accumulators longer or load outlet ports.
+
+%% P:sec1-p3
+\ptag{sec1-p3}%
+In the production designs we examined whose public material suffices to determine the \handoff format, the matrix engine passes scalar values to vector execution, block formats are rebuilt by dedicated quantizers, and vector instruction sets accept a block scale only in conversion instructions (\secref{sec:bg-today}).
+Academic designs carry block formats across the matrix/non-matrix operator boundary \cite{Wang2025DBAttn} \citeTBD{MXInt ViT} \citeTBD{MASE}, so the crossing itself is not new (\secref{sec:related}).
+What remains open is where a processing element (PE) whose \TensorUnit and \VectorCore{}s are separate, reused resources, with limited storage and ports, should form the block representation and how long to keep it.
+
+%% P:sec1-p4
+\ptag{sec1-p4}%
+The motivating workload is decoding with three public models from two generations of one family: DeepSeek-V4-Pro and V4-Flash, then V4.1-Flash \cite{DeepSeekAI2026V4ProHF,DeepSeekAI2026V41Flash,DeepSeekAI2026V41FlashHF} \citeTBD{DeepSeek-V4 paper} \citeTBD{DeepSeek-V4-Flash model repository}.
+From V4 to V4.1, each model component's share of a decode step, the storage formats and the scale-block sizes changed, while a set of structural quantities held (\secref{sec:bg-workload}).
+These changes motivate the target design; the models' analytically derived operation counts form the evaluation workload (\secref{sec:workload-method}).
+
+%% P:sec1-p5
+\ptag{sec1-p5}%
+A block's payload means nothing without its scale; a \handoff is \failvisible if no payload can be consumed under stale or mismatched metadata without a reported error.
+We ask one question in two parts.
+In a PE that combines a matrix unit with vector units, when does keeping GEMM results \blockscaled across the matrix-to-vector \handoff{}---forwarded directly, or committed with their scales and re-consumed---pay off against a scalar floating-point \handoff and a fused epilogue at equal numerical quality?
+And what does it cost to make that \handoff \failvisible and to check scale metadata at dispatch time versus in the datapath? \TBD{N}{final wording; whether to name transaction granularity}
+
+%% P:sec1-p6
+\ptag{sec1-p6}%
+We keep the forms of evidence apart.
+Up to four \handoff placements are compile-time configurations of one RTL, compared in \evRTL.
+Producer-side fusion is not part of the PE RTL; we evaluate it with a \evSlice and a \evModel, and report an optimistic bound and a calibrated estimate.
+Numerical error is evaluated on synthetic inputs by a model that follows the hardware's accumulation and rounding order.
+System-level impact is a model projection \TBD{P}{source of cycle-level and system-level performance data}.
+The text describes the target design; each subsection of \secref{sec:uarch} ends with what today's RTL prototype implements.
+Today that is one placement, \armBD; the workload characterization and a post-route layout exist, and no placement has yet been compared.
+
+%% P:sec1-p7
+\ptag{sec1-p7}%
+We make two contributions.
+(1) A finding: when keeping the block representation across the matrix-to-vector \handoff pays off, characterized by whether fusion is feasible, how long a result must live, and the granularity of metadata transactions \TBD{E4}{boundary of the pay-off region; no experimental result yet}.
+(2) An engineering mechanism: a \failvisible \handoff and commit protocol for block results, which reports mismatches and errors to the PE's command processor and publishes a result only when its payload and scale metadata are complete; it includes the \FastPath, the direct link from the \TensorUnit to the \VectorCore{}s.
+The RTL, its bit-accurate reference model and the evaluation models are the evidence platform, not separate contributions.

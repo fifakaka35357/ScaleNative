@@ -1,0 +1,10 @@
+%% preamble/authors-acm.tex -- how authors.tex is rendered by acmart.
+\makeatletter
+\newcommand{\PaperAffil}[4]{\csgdef{pa@inst@#1}{#2}\csgdef{pa@city@#1}{#3}\csgdef{pa@country@#1}{#4}}
+\newcommand{\pa@oneaff}[1]{%
+  \ifcsdef{pa@inst@#1}{}{\PackageError{paper}{authors.tex: affiliation key `#1' is not defined}{Add a \string\PaperAffil\space line.}}%
+  \affiliation{\institution{\csuse{pa@inst@#1}}\city{\csuse{pa@city@#1}}\country{\csuse{pa@country@#1}}}}
+\newcommand{\PaperAuthor}[3]{\author{#1}\forcsvlist{\pa@oneaff}{#2}\ifstrempty{#3}{}{\email{#3}}}
+\newcommand{\PaperEmitAuthors}{}
+\makeatother
+\endinput

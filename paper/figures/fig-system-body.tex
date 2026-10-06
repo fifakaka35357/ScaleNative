@@ -1,0 +1,58 @@
+%% Copyright 2026 The ScaleNative Authors.
+%% All rights reserved.  Not under the repository's Apache-2.0 license; see ../README.md.
+%%
+%% fig-system-body.tex -- system organization (target design), the figure body.  Single column: 3.33 in x 2.1 in.
+%% Every colour, line width and type size comes from scalenative-figstyle.sty; this file sets positions and box sizes.
+%% The target design is drawn, not the prototype RTL (see the figure caption).
+%% Coordinates in bp.  Canvas = 239.76 x 151.2 bp.  Ink edge of a node = its anchor (outer sep = half line).
+%% Local settings: `sys pair' (below); mesh cells of 13 bp instead of the style's 15 bp; the mesh frame filled
+%% with AFNeutF itself, not the 14 % tint of `af group'; white fill on the SoC frame and on the frame of the
+%% enlarged PE; widths and heights of the blocks.
+%% Needs: \usepackage{scalenative-figstyle}.
+\begin{AFcanvas}[
+    % two sheets, not three: `af stack' of the style file draws two copies behind the block; a block that says
+    % "2 cores" gets exactly one.  Same offset, fill, ink and line width as `af stack'.
+    sys pair/.style={copy shadow={shadow xshift=1.6bp, shadow yshift=-1.6bp, fill=AFpaper, draw=AFink, line width=\AFlwthin}},
+  ]{S}{210}
+  % ======================= frames: SoC > PE mesh > one enlarged PE (layers below the blocks) ==============
+  \AFboxoutermost[af group=Host, fill=AFpaper]{soc}{(1bp,1bp)}{(238.7bp,132.9bp)}
+  \AFboxouter[af group=Neut, fill=AFNeutF]{mesh}{(4bp,4bp)}{(235.7bp,103bp)}
+  \AFbox[af unit, fill=AFpaper]{pe}{(110.5bp,9.9bp)}{(231.3bp,97.1bp)}
+  % ======================= SoC row: Host interface, Control Core, L3 ========================
+  \node[af blk=NoC,      anchor=south] (hif) at (72.1bp,115.3bp) {Host interface};
+  \node[af blk=CtrlCore, anchor=south west] (cc) at (107.5bp,115.3bp) {Control Core};
+  \node[af mem=Lthree,   anchor=east] (l3) at (231.9bp,0bp |- hif.east) {L3\enspace 128--256 MiB};
+  \node[af frame label, anchor=base west] (socl) at (3.5bp,0bp |- hif.base) {SoC};
+  % each of the three nodes reaches the mesh; where they attach is not fixed, so only to the frame edge
+  \foreach \n in {hif,cc,l3}{\draw[af bus] (\n.south) -- (\n.south |- mesh.north);}
+  % ======================= Host, off chip =======================================================
+  \node[af blk=Host, anchor=south] (host) at ($(hif.north)+(0,12bp)$) {Host};
+  \draw[af bus] (host.south) -- (hif.north);
+  % ======================= the mesh: 4 x 4 cells shown, the last one stands for the rest ========
+  \foreach \i in {0,1,2,3}{\foreach \j in {0,1,2,3}{
+    \ifnum\i\j=30
+      \node[af pe cell, minimum size=13bp, draw=none, fill=none] (p\i\j) at ($(14.6bp,21.9bp)+(\i*23bp,\j*23bp)$) {\dots};
+    \else
+      \node[af pe cell, minimum size=13bp] (p\i\j) at ($(14.6bp,21.9bp)+(\i*23bp,\j*23bp)$) {PE};
+    \fi}}
+  \foreach \a/\b in {0/1,1/2,2/3}{\foreach \c in {0,1,2,3}{
+    \draw[af link] (p\a\c) -- (p\b\c);      % east-west links
+    \draw[af link] (p\c\a) -- (p\c\b);}}    % north-south links
+  \node[af lbl, anchor=south west] (ml) at (6.8bp,5.4bp) {8\,\AFx\,8 PE mesh};
+  % ======================= one PE enlarged: blocks tiled, no wiring except the main line ========
+  \node[af blk=Ibex,      anchor=north west, minimum width=39.4bp] (ibex) at (130bp,92.5bp) {Ibex CPU};
+  \node[af frame label, anchor=base west] (pel) at (113.2bp,0bp |- ibex.base) {PE};
+  \node[af mem dark=Lone, anchor=west, minimum width=26.1bp] (l1) at (173bp,0bp |- ibex.west) {L1};
+  \node[af blk dark=DMA,  anchor=north west, minimum width=25.4bp] (dma) at (198.7bp,92.5bp) {DMA};
+  \node[af blk=Cmd, anchor=north west, minimum width=107bp] (cp) at (117.1bp,77.9bp) {Command processor};
+  \node[af blk=Tensor, anchor=north west, minimum width=43.6bp, minimum height=31bp] (ten) at (117.1bp,63.3bp) {Tensor unit};
+  \node[af blk=Vector, sys pair, anchor=north east, minimum width=43.6bp, minimum height=31bp] (vec) at (223.1bp,63.3bp) {Vector unit\\2 cores};
+  \draw[af main] (ten.east) -- (vec.west);                                                           % main line: the Tensor-to-Vector hand-off
+  \node[af mem=Ltwo, anchor=west, minimum width=111bp, minimum height=12bp, inner ysep=0pt] (l2) at (117.1bp,20.8bp) {L2\enspace 128 KiB};
+  % the inbound local port of a PE; its width beside it; not wired
+  \node[af port=east, anchor=east] (pp) at (113.4bp,24.6bp) {};
+  \node[af lbl, rotate=90, anchor=west] (rate) at (103.5bp,29.5bp) {64 B/cycle};
+  % leaders: the enlarged PE is this cell of the mesh
+  \draw[af leader] (p31.north east) -- ($(pe.north west)+(1.2bp,-1.2bp)$);
+  \draw[af leader] (p31.south east) -- ($(pe.south west)+(1.2bp,1.2bp)$);
+\end{AFcanvas}

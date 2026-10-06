@@ -1,0 +1,42 @@
+%% ============================================================================
+%% sections/07-related-work.tex -- Related Work
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 420 words of running text.
+%% ============================================================================
+
+\section{Related Work}\label{sec:related}
+
+%% P:tab7-cap
+\begin{table}[t]
+\centering\SlotName{tab:prior}%
+\caption{Closest prior work, grouped by mechanism: what each line of work answers and what it leaves open.}\label{tab:prior}
+\input{tables/tab-prior}
+\end{table}
+
+%% P:sec7-p1
+\ptag{sec7-p1}%
+\parhead{Block formats beyond the matrix engine.}%
+Prior work has shown that block formats can cross the matrix/non-matrix operator boundary, in operator-specific engines.
+DB-Attn shares exponents between block floating-point matrix multiplication and softmax, with a softmax engine in RTL \cite{Wang2025DBAttn}.
+MXInt ViT maps every operator of a vision transformer into the MXInt domain \citeTBD{MXInt ViT}, and MASE generates dataflow accelerators whose inter-operator tensors stay in MXInt \citeTBD{MASE}.
+BBAL adds a nonlinear unit in its BBFP format, but only after converting its inputs back from FP16 \cite{Han2025BBAL}.
+We ask instead when keeping the block representation pays off between separate, reused units, comparing placements as configurations of one RTL.
+
+%% P:sec7-p2
+\ptag{sec7-p2}%
+\parhead{Production hand-offs and the fused epilogue.}%
+Three practices surveyed in \secref{sec:bg-today} correspond to placements that we compare, in the order of \tabref{tab:prior}: \armSE, \armSD, and \armSM plus packing.
+Our comparisons stay between placements on one RTL and never cross process nodes.
+
+%% P:sec7-p3
+\ptag{sec7-p3}%
+\parhead{Data and metadata consistency, tags and write combining.}%
+CHERI binds a tag atomically to its data and clears it on an ordinary write, per capability \citeTBD{CHERI ISA specification}; it does not cover multi-row numerical objects read again under a lease after a statistic is computed.
+Tag comparison in tagged-token dataflow and Triggered Instructions is a precedent for checking at the consumer \citeTBD{tagged-token dataflow; Triggered Instructions}.
+Write combining is common practice and our strong baseline for hypothesis~B (\secref{sec:metadata}), not a contribution.
+The commit, lease and publish rules (\secref{sec:retain}, \secref{sec:commit}) belong to our engineering mechanism: we report its cost and do not claim that correct metadata handling is itself new.

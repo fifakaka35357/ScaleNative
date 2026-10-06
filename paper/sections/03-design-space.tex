@@ -1,0 +1,105 @@
+%% ============================================================================
+%% sections/03-design-space.tex -- Keeping Results Block-Scaled: Design Space, Representation and Protocol
+%% Class-independent section file: it is \input by main-acm.tex and main-ieee.tex.
+%% Rules (see README-build.md): no class-specific commands; cite with \cite only;
+%% figure sizes come from the float budget and table bodies from tables/, never from this file.
+%% Every paragraph and every caption is one numbered unit that starts with a
+%% marker line "%% P:<id>".  Ids are frozen: never renumber, never reuse.
+%% The same ids appear in paper.zh-CN.md; check_align.py compares the two.
+%% Word budget of this section: 720 words of running text.
+%% ============================================================================
+
+\section{Keeping Results Block-Scaled: Design Space, Representation and Protocol}\label{sec:design}
+
+%% P:tab2-cap
+\begin{table*}[t]
+\centering\SlotName{tab:placements}%
+\caption{The five \handoff placements. B/S: block or scalar representation; D/M/E: direct, through storage, or fused epilogue.}\label{tab:placements}
+\input{tables/tab-placements}
+\end{table*}
+
+\subsection{Five Hand-off Placements}\label{sec:placements}
+
+%% P:sec3.1-p1
+\ptag{sec3.1-p1}%
+\tabref{tab:placements} defines five placements of the \handoff.
+\armBD and \armSD forward each output row directly to the Vector side, as one block or as scalars; \armSE consumes the result in an epilogue at the producer; \armBM and \armSM first write it to \Lii, the PE's local storage, and read it back before consumption
+\TBD{D1}{whether the placements are compared on one Vector core or on both}.
+
+%% P:sec3.1-p2
+\ptag{sec3.1-p2}%
+Four constraints apply to all placements; one placement pays off over another only under them and at a common error budget
+\TBD{N}{deciding metric and error budget, frozen before the sweep}.
+The primary comparison fixes the physical bit width and the total byte budget, with \Lii at its target 128\,KiB (32\,KiB in the prototype); a secondary comparison fixes the number of blocks held.
+Schedules are matched, so no scheduling gain is credited to the representation.
+A conversion before the next GEMM is charged to every path needing it.
+Accumulation precision, residual injections, narrowing points, reduction order and rounding are frozen before any performance comparison; the target design's outlet defaults to round-to-nearest-even
+\TBD{D7}{rounding at each narrowing point, to be re-read from the RTL once merged}.
+
+\subsection{What Each Comparison Can Attribute}\label{sec:attribution}
+
+%% P:tab3-cap
+\begin{table}[t]
+\centering\SlotName{tab:attribution}%
+\caption{Attribution matrix: what each pairwise comparison isolates, and the condition it must establish, not assume.}\label{tab:attribution}
+\input{tables/tab-attribution}
+\end{table}
+
+%% P:sec3.2-p1
+\ptag{sec3.2-p1}%
+A pairwise comparison isolates the representation, materialization in storage or the fusion placement, each under a condition that it must establish; \armBD versus \armSE compares two complete designs (\tabref{tab:attribution}).
+When \armBD, \armSD, \armBM and \armSM all have the same form of evidence, the interaction for a cost $C$ is $I=(C_{B,M}-C_{S,M})-(C_{B,D}-C_{S,D})$; costs backed by different evidence are never subtracted.
+
+\subsection{Consumer Tiers}\label{sec:tiers}
+
+%% P:sec3.3-p1
+\ptag{sec3.3-p1}%
+We define three consumer tiers.
+The first is a residual add.
+The second is a per-block sum of squares.
+The third computes a statistic and then consumes the original result again, as a normalization does: with $X$ the GEMM output accumulated over the full $K$, $s_r=\sum_{j\in\mathcal{J}_r}X_{rj}^2$ and $Y_{rj}=X_{rj}\,h(s_r)$, where $h$ is a scalar function and $\mathcal{J}_r$ is one 16-element block or a row spanning at least two output blocks
+\TBD{E4}{whether the third tier is evaluated, and at which sizes}.
+The representation of $X$ and the cost of $h$ are fixed in advance; if a host or a model computes $h$, every placement pays the same cost.
+The fused baseline may buffer the 16 values or replay them; no placement retains a result for free.
+
+\subsection{Retaining and Publishing a Result}\label{sec:retain}
+
+%% P:fig3-cap
+\FigSlot{fig:retain}%
+  {Result retention and publish path, with the protocol as one panel}%
+  {only a sketch exists}%
+  {Retention and publish path of one result (target design), with its three separate events. The prototype implements the path up to payload write-back.}
+
+%% P:sec3.4-p1
+\ptag{sec3.4-p1}%
+An output transaction (a producer's output rows with their metadata) is published, that is, made visible to consumers outside it, only after all its rows and metadata are complete and no sticky error is set.
+A producer--consumer chain bound to the transaction may consume rows as they arrive, but the object it writes stays unpublished; a late error is attributed to the original transaction and blocks publication.
+Snapshot reuse, credit return and transaction retirement are three separate events (\figref{fig:retain})
+\TBD{D7}{layout of the written object, pending the write-back design}.
+
+%% P:sec3.4-p2
+\ptag{sec3.4-p2}%
+One constraint shapes this path: the PE's command processor releases a context, one of its command queues, when the GEMM is done, before its output has drained.
+By our reading of the RTL (not simulated), deferring the release until the output retires would deadlock a chain that alternates producer and consumer commands in one context: the consumer could not be dispatched, the \handoff FIFO would fill, the outlet would stall and the GEMM would never complete.
+Resources are released early, and a completion record must outlive them to settle rows in flight.
+
+\subsection{Objects, Lifetime and In-flight Identity}\label{sec:objects}
+
+%% P:sec3.5-p1
+\ptag{sec3.5-p1}%
+The target protocol tracks three kinds of information.
+The numeric encoding of an object (its scales, codec, grouping and valid range) is stored with the object rather than rebuilt from what the consumer expects.
+Its lifetime (which version is visible, who holds read leases, who may write) lives in a bounded object table in the command processor.
+The identity of a result in flight travels with every \capsule (one output row with its metadata): context, tag, row number and a last-row mark
+\TBD{D7}{where the encoding is stored, when a lease ends}.
+
+\subsection{Metadata Transaction Model}\label{sec:metadata}
+
+%% P:sec3.6-p1
+\ptag{sec3.6-p1}%
+Hypothesis~B (\secref{sec:bg-hypotheses}) is tested with a transaction account.
+With $w$ bits per physical \sidecar access, $k$ elements per block and $g$ blocks covered by one merged update, a read-modify-write costs $C_{\mathrm{RMW}}=2w/(kg)$ bits per element; $g$ is bounded by buffer capacity, arrival order and commit time.
+The SRAM macros have no byte mask, so every partial update is a read-modify-write that can collide with read requests.
+The account has five more terms (payload accesses, tail blocks and masks, object-table accesses, merge waiting, conflict stalls) and uses one production-to-consumption boundary for \armBM and \armSM.
+Ordinary write combining is the strong baseline
+\TBD{D7}{layout of the scale metadata, pending the write-back design}.

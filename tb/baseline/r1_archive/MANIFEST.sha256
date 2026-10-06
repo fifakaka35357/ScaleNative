@@ -1,0 +1,12 @@
+#FMT r1-manifest v1
+#GROUP r1_archive
+#RTL 96fe783
+#AICHIP_HEAD b19aa9a91c0146ad2d6400fe15ee4cc7660ece36
+#TOOL verilator=5.032 cocotb=1.9.2 python=3.10.12 xprop=0 xseed=1
+#CASES 3
+72f5bc5bc312d9bf9ef97857738b0c9de4aab37b3aa5c2ff2d88b2bd0ab53640  scu_tile_bit_reserved.snap
+5f6c00d379273bd5bc486ae61c08c59031c5f222ed79aba6b5ca3e4e1edf8775  scu_tile_control.snap
+f32df249b75bb10e41b876c1f7ef38934f6334b8fde08638a1b54dc32a9110ce  sparse_nostall_control.snap
+# [3a-1 2026-08-02] sparse_nostall_control.snap 已退役：产生者
+# (test_tensor_sparse_stall.py) 随 K 令牌通路退役改名 pending_；文件保留作历史证据。
+#END 3
